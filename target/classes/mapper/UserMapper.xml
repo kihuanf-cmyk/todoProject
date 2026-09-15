@@ -4,19 +4,19 @@
 
     <insert id="insertUser" parameterType="kr.or.oti.project.domain.User">
         INSERT INTO "user" (user_id, pwd, user_name)
-        VALUES (#{userId}, #{pwd}, #{userName})
+        VALUES (#{user_id}, #{pwd}, #{user_name})
     </insert>
 
     <select id="selectUserById" parameterType="String" resultType="kr.or.oti.project.domain.User">
-        SELECT user_id AS userId, pwd, user_name AS userName
+        SELECT user_id AS user_id, pwd, user_name AS user_name
         FROM "user"
-        WHERE user_id = #{userId}
+        WHERE user_id = #{user_id}
     </select>
 
     <select id="countUserById" parameterType="String" resultType="int">
         SELECT COUNT(*)
         FROM "user"
-        WHERE user_id = #{userId}
+        WHERE user_id = #{user_id}
     </select>
 
 </mapper>

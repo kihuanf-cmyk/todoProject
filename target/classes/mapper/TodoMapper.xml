@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.oti.project.mapper.TodoMapper">
+
+    <insert id="insertTodo" parameterType="kr.or.oti.project.domain.Todo">
+        <selectKey keyProperty="todoId" resultType="Long" order="BEFORE">
+            SELECT todo_seq.NEXTVAL FROM DUAL
+        </selectKey>
+        INSERT INTO todo (todo_id, user_id, title, content, schedule_date, is_checked, file_url)
+        VALUES (#{todoId}, #{userId}, #{title}, #{content}, #{scheduleDate}, #{isChecked}, #{fileUrl})
+    </insert>
+
+    <select id="selectTodoListByUser" parameterType="String" resultType="kr.or.oti.project.domain.Todo">
+        SELECT todo_id AS todoId, user_id AS userId, title, content,
+               schedule_date AS scheduleDate, is_checked AS isChecked, file_url AS fileUrl
+        FROM todo
+        WHERE user_id = #{userId}
+        ORDER BY schedule_date ASC
+    </select>
+
+    <select id="selectTodoById" parameterType="Long" resultType="kr.or.oti.project.domain.Todo">
+        SELECT todo_id AS todoId, user_id AS userId, title, content,
+               schedule_date AS scheduleDate, is_checked AS isChecked, file_url AS fileUrl
+        FROM todo
+        WHERE todo_id = #{todoId}
+    </select>
+
+    <update id="updateTodo" parameterType="kr.or.oti.project.domain.Todo">
+        UPDATE todo
+        SET title = #{title},
+            content = #{content},
+            schedule_date = #{scheduleDate},
+            is_checked = #{isChecked},
+            file_url = #{fileUrl}
+        WHERE todo_id = #{todoId}
+    </update>
+
+    <delete id="deleteTodo" parameterType="Long">
+        DELETE FROM todo
+        WHERE todo_id = #{todoId}
+    </delete>
+
+    <select id="searchTodoByTitle" resultType="kr.or.oti.project.domain.Todo">
+        SELECT todo_id AS todoId, user_id AS userId, title, content,
+               schedule_date AS scheduleDate, is_checked AS isChecked, file_url AS fileUrl
+        FROM todo
+        WHERE user_id = #{userId}
+          AND title LIKE '%' || #{keyword} || '%'
+        ORDER BY schedule_date ASC
+    </select>
+
+</mapper>

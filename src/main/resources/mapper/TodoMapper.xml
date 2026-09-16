@@ -39,6 +39,11 @@
         WHERE todo_id = #{todo_id}
     </delete>
 
+    <!--
+        검색 기능 SQL
+        @Param("user_id"), @Param("keyword") 덕분에
+        #{user_id}, #{keyword} 가 정확히 어떤 값인지 MyBatis 가 구분할 수 있음
+    -->
     <select id="searchTodoByTitle" resultType="kr.or.oti.project.domain.Todo">
         SELECT todo_id AS todo_id, user_id AS user_id, title, content,
                schedule_date AS schedule_date, is_checked AS is_checked, file_url AS file_url

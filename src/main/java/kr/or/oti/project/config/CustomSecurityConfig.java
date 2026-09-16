@@ -40,6 +40,10 @@ public class CustomSecurityConfig {
                 .logoutUrl("/user/logout")
                 .logoutSuccessUrl("/user/login")
                 .invalidateHttpSession(true)
+            )
+            // 관리자 페이지 등 권한 없는 URL 무단 접근 시 403 에러 안내 페이지로 이동
+            .exceptionHandling(exception -> exception
+                .accessDeniedPage("/user/denied")
             );
 
         return http.build();

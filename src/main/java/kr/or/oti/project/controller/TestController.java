@@ -31,9 +31,17 @@ public class TestController {
             return "DB 연결 실패: " + e.getMessage();
         }
     }
+
     @GetMapping("/mapper-test")
     public String mapperTest() {
         int count = userMapper.countUserById("test@test.com");  // 존재하지 않는 아이디로 조회
         return "매퍼 정상 동작! count = " + count;  // 테이블이 비어있으면 0이 나오는 게 정상
+    }
+
+    // 관리자(ROLE_ADMIN) 전용 테스트 엔드포인트
+    // 일반 회원(ROLE_USER)이 접속하면 403 차단되어 /user/denied 로 이동함
+    @GetMapping("/admin/dashboard")
+    public String adminDashboard() {
+        return "관리자 전용 대시보드입니다. 환영합니다!";
     }
 }

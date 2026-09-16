@@ -9,7 +9,6 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-//수정 (로그인/로그아웃 POST·GET 제거, 회원가입 관련만 남김)
 @Controller
 @RequiredArgsConstructor
 @RequestMapping("/user")
@@ -35,9 +34,18 @@ public class UserController {
 		return "redirect:/user/login";
 	}
 
-	// 로그인 폼 (렌더링만 담당 — POST 처리는 Spring Security formLogin이 가로챔)
+	// 로그인 폼
 	@GetMapping("/login")
 	public String loginForm() {
 		return "user/login";
+	}
+
+	// 관리자 페이지 등 권한 없는 URL 무단 접근 시 403 에러 안내 화면 연결
+	@GetMapping("/denied")
+	public String accessDenied(Model model) {
+		model.addAttribute("errorCode", "403");
+		model.addAttribute("errorTitle", "접근 권한이 없습니다");
+		model.addAttribute("errorMessage", "관리자만 접근할 수 있는 페이지이거나 해당 메뉴에 대한 접근 권한이 없습니다.");
+		return "error/error";
 	}
 }

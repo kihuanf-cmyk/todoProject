@@ -9,6 +9,7 @@
 <body class="bg-white">
 
     <div class="d-flex" style="height:100vh;">
+        <!-- 사이드바 -->
         <aside class="border-end bg-light d-none d-md-flex flex-column" style="width:240px;">
             <div class="p-3 border-bottom fw-semibold small">
                 <span class="badge bg-dark me-2">D</span>DayPlanner
@@ -17,25 +18,60 @@
                 <a th:href="@{/todo/list}" class="nav-link active">🏠 일정 목록</a>
                 <a th:href="@{/todo/register}" class="nav-link text-dark">➕ 새 일정 등록</a>
             </nav>
-            <form th:action="@{/user/logout}" method="post" class="p-2 mt-auto">
-                <button type="submit" class="btn btn-outline-secondary btn-sm w-100">🚪 로그아웃</button>
-            </form>
         </aside>
 
         <div class="flex-fill d-flex flex-column overflow-auto">
-            <header class="border-bottom px-3 py-2 small text-muted">DayPlanner / 일정 목록</header>
+            <!-- 헤더 -->
+            <header class="border-bottom px-3 py-2 small text-muted d-flex justify-content-between align-items-center">
+                <span>DayPlanner / 일정 목록</span>
+                <form th:action="@{/user/logout}" method="post" class="m-0">
+                    <button type="submit" class="btn btn-outline-secondary btn-sm">🚪 로그아웃</button>
+                </form>
+            </header>
 
             <main class="p-4 p-md-5">
                 <div class="mx-auto" style="max-width:720px;">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
+
+                    <!-- 제목 & 새로 만들기 버튼 -->
+                    <div class="d-flex justify-content-between align-items-center mb-3">
                         <h1 class="h3 fw-bold mb-0">📋 내 일정</h1>
                         <a th:href="@{/todo/register}" class="btn btn-dark btn-sm">+ 새로 만들기</a>
                     </div>
 
+                    <!-- 검색 폼 -->
+                    <form th:action="@{/todo/list}" method="get" class="mb-4">
+                        <div class="input-group input-group-sm">
+                            <input type="text"
+                                   name="keyword"
+                                   class="form-control"
+                                   placeholder="제목으로 검색"
+                                   th:value="${keyword}">
+                            <button type="submit" class="btn btn-outline-secondary">🔍 검색</button>
+                            <!-- 검색어가 있을 때만 전체보기 버튼 노출 -->
+                            <a th:if="${keyword != null and !#strings.isEmpty(keyword)}"
+                               th:href="@{/todo/list}"
+                               class="btn btn-outline-dark">✕ 전체보기</a>
+                        </div>
+                    </form>
+
+                    <!-- 검색 결과 안내 문구 -->
+                    <p th:if="${keyword != null and !#strings.isEmpty(keyword)}"
+                       class="small text-muted mb-2">
+                        '<span th:text="${keyword}"></span>' 검색 결과
+                        <span th:text="'(' + ${#lists.size(todoList)} + '건)'"></span>
+                    </p>
+
+                    <!-- 목록이 비어있을 때 -->
                     <div th:if="${#lists.isEmpty(todoList)}" class="text-center text-muted py-5">
-                        등록된 일정이 없습니다.
+                        <span th:if="${keyword != null and !#strings.isEmpty(keyword)}">
+                            검색 결과가 없습니다.
+                        </span>
+                        <span th:unless="${keyword != null and !#strings.isEmpty(keyword)}">
+                            등록된 일정이 없습니다.
+                        </span>
                     </div>
 
+                    <!-- 일정 목록 -->
                     <div class="list-group">
                         <a th:each="item : ${todoList}" th:href="@{/todo/{id}(id=${item.todo_id})}"
                            class="list-group-item list-group-item-action d-flex align-items-center gap-3">
@@ -49,6 +85,7 @@
                             <span class="text-muted small">열기 &rarr;</span>
                         </a>
                     </div>
+
                 </div>
             </main>
         </div>

@@ -125,7 +125,7 @@ todoProject/
 - 수정: 수정 DTO를 `Todo` 객체로 바꾸어 Mapper 호출
 - 삭제: 일정 ID로 삭제
 
-새 일정은 항상 `is_checked = "N"`으로 시작한다. 화면에 전달하는 응답 DTO 변환은 `toResponseDto()`에서 한 곳으로 관리한다.
+새 일정은 항상 `is_checked = "N"`으로 시작한다. 화면에 전달하는 응답 DTO 변환은 `TodoResponseDto.from()`에서 한 곳으로 관리한다. 이 메서드는 내부에서 `@Builder`를 사용해 응답 DTO를 생성한다.
 
 ### 4.3 Domain 계층
 
@@ -158,7 +158,7 @@ DTO는 요청과 응답의 목적에 맞게 필요한 필드만 전달하는 객
 - `TodoUpdateRequestDto`: 수정할 `todo_id`, 제목, 내용, 날짜, 완료 여부를 받는다.
 - `TodoResponseDto`: 목록과 상세 화면에 전달할 응답 객체다. `Todo`에서 필요한 필드만 골라 Builder로 생성한다.
 
-현재 `TodoResponseDto.from()` 메서드도 있지만 실제 Service 구현은 자체 `toResponseDto()`를 사용한다. 변환 방식을 하나로 통일하면 코드 학습과 유지보수가 더 쉬워진다.
+`TodoResponseDto.from()`이 `Todo`를 응답 DTO로 변환하는 책임을 가진다. `TodoServiceImpl`은 목록과 상세 조회에서 이 메서드를 호출하고, DTO 생성 자체는 `@Builder`가 담당한다.
 
 ### 4.5 Mapper 계층
 
@@ -336,7 +336,7 @@ java -jar target/Project-0.0.1-SNAPSHOT.jar
 6. **입력 검증 부족**: 화면의 `required`와 jQuery 검증만으로는 충분하지 않다. 서버 DTO에 Bean Validation을 추가해야 한다.
 7. **예외 처리 부족**: 존재하지 않는 `todo_id`나 DB 오류가 발생했을 때의 공통 처리와 사용자 화면이 없다.
 8. **테스트 부재**: `src/test/java`와 `src/test/resources`에 현재 테스트 파일이 없다. Service 단위 테스트와 Controller/Mapper 통합 테스트를 추가하면 좋다.
-9. **DTO 변환 중복**: `TodoResponseDto.from()`과 `TodoServiceImpl.toResponseDto()`가 함께 존재한다. 하나로 정리할 수 있다.
+9. **DTO 변환 방식**: `TodoResponseDto.from()`이 `Todo`에서 응답 DTO로 변환하는 로직을 담당한다. `TodoServiceImpl`에는 별도의 변환 메서드를 두지 않아 변환 로직이 중복되지 않는다.
 10. **Mapper 파라미터 명시성**: 검색 메서드처럼 여러 파라미터를 XML에서 사용할 때는 `@Param("user_id")`, `@Param("keyword")`를 붙이는 방식이 안전하다.
 
 ## 10. 추천 학습 순서
@@ -351,3 +351,45 @@ java -jar target/Project-0.0.1-SNAPSHOT.jar
 8. 로그인, 검색, 파일, 검증, 테스트를 차례로 확장
 
 이 프로젝트의 핵심은 한 기능이 여러 계층을 통과한다는 점이다. 예를 들어 등록 기능 하나를 공부할 때 Controller의 DTO 바인딩, Service의 도메인 객체 생성, Mapper의 SQL 파라미터 전달, Oracle INSERT, redirect 후 목록 재조회까지 한 흐름으로 따라가면 Spring MVC와 MyBatis의 역할 분담을 이해하기 쉽다.
+
+<!-- 최적화 검토일: 2026-09-15 -->
+## 11. 최적화 권장 사항
+
+현재 프로젝트는 성능 병목보다 보안, 데이터 정합성, 운영 안정성을 먼저 개선하는 것이 효과적이다.
+
+### 11.1 사용자 권한 검증
+
+목록 조회는 `user_id`로 필터링하지만 상세 조회, 수정, 삭제는 `todo_id`만 사용한다. 다른 사용자가 일정 ID를 추측하면 다른 사용자의 일정을 조회하거나 변경할 수 있으므로, 모든 조회·수정·삭제 SQL에 현재 사용자 ID 조건을 함께 적용해야 한다. 로그인하지 않은 사용자를 `test01`로 자동 설정하는 임시 코드도 실제 인증 기능으로 교체해야 한다.
+
+### 11.2 목록 페이징과 DB 인덱스
+
+현재 일정 목록을 한 번에 모두 조회하므로 데이터가 많아지면 응답 시간과 메모리 사용량이 증가한다. 페이지 번호와 페이지 크기를 받아 Oracle 페이징을 적용하고, 다음과 같은 복합 인덱스를 검토하는 것이 좋다.
+
+```sql
+CREATE INDEX idx_todo_user_schedule
+ON todo(user_id, schedule_date);
+```
+
+### 11.3 서버 입력 검증
+
+화면의 `required` 속성이나 JavaScript 검증만으로는 충분하지 않다. 등록·수정 DTO에 Bean Validation을 적용해 제목 필수 여부, 제목과 내용의 최대 길이, 날짜 형식, `is_checked` 값(`Y` 또는 `N`)을 서버에서 검증해야 한다.
+
+### 11.4 DB 설정과 로그 분리
+
+`application.properties`에 DB 비밀번호가 직접 들어 있으므로 환경 변수나 외부 설정으로 이동해야 한다. 개발 환경에서만 DevTools와 MyBatis SQL trace 로그를 사용하고, 운영 환경에서는 비활성화하는 것이 좋다. 개발·운영 설정은 프로파일별 properties 파일로 분리한다.
+
+### 11.5 MyBatis 매퍼와 예외 처리
+
+검색 매퍼는 여러 파라미터를 사용하므로 `@Param("user_id")`, `@Param("keyword")`를 명시하는 것이 안전하다. 상세 조회 결과가 없을 때의 `null` 처리, 수정·삭제 결과가 0건일 때의 처리, DB 오류에 대한 공통 예외 화면도 추가해야 한다.
+
+### 11.6 테스트 추가
+
+사용자별 목록 조회, 다른 사용자의 일정 접근 차단, 존재하지 않는 일정 조회, 등록·수정·삭제 성공 여부, 잘못된 입력 검증을 단위 테스트와 통합 테스트로 확인하는 것이 좋다. 현재 테스트가 없으므로 기능 확장 전에 이 테스트를 마련하면 회귀 오류를 줄일 수 있다.
+
+### 11.7 권장 적용 순서
+
+1. 사용자 인증과 일정 소유권 검증
+2. 서버 입력 검증과 예외 처리
+3. 목록 페이징 및 `user_id`, `schedule_date` 인덱스 검토
+4. DB 비밀번호, 프로파일, 운영 로그 설정 분리
+5. MyBatis 매퍼 정리와 테스트 추가

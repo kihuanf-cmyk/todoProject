@@ -35,7 +35,7 @@ public class TodoServiceImpl implements TodoService {
     @Override
     public List<TodoResponseDto> getTodoList(String user_id) {
         return todoMapper.selectTodoListByUser(user_id).stream()
-                .map(TodoServiceImpl::toResponseDto)
+                .map(TodoResponseDto::from)
                 .collect(Collectors.toList());
     }
 
@@ -43,7 +43,7 @@ public class TodoServiceImpl implements TodoService {
     @Override
     public TodoResponseDto getTodo(Long todo_id) {
         Todo todo = todoMapper.selectTodoById(todo_id);
-        return toResponseDto(todo);
+        return TodoResponseDto.from(todo);
     }
 
     // 수정
@@ -72,14 +72,4 @@ public class TodoServiceImpl implements TodoService {
 //                .collect(Collectors.toList());
 //    }
 
-    // VO -> DTO 변환은 한 곳에서만 관리 (필드명이 VO는 스네이크, DTO는 카멜이라 매핑 필요)
-    private static TodoResponseDto toResponseDto(Todo todo) {
-        return TodoResponseDto.builder()
-                .todo_id(todo.getTodo_id())
-                .title(todo.getTitle())
-                .content(todo.getContent())
-                .schedule_date(todo.getSchedule_date())
-                .is_checked(todo.getIs_checked())
-                .build();
-    }
 }

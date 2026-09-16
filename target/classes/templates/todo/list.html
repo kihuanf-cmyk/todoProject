@@ -13,20 +13,17 @@
             <div class="p-3 border-bottom fw-semibold small">
                 <span class="badge bg-dark me-2">D</span>DayPlanner
             </div>
-			<!-- 수정: 로그아웃 폼을 사이드바에서 헤더로 이동 -->
-			<nav class="nav flex-column p-2 small">
-			    <a th:href="@{/todo/list}" class="nav-link active">🏠 일정 목록</a>
-			    <a th:href="@{/todo/register}" class="nav-link text-dark">➕ 새 일정 등록</a>
-			</nav>
-			</aside>
+            <nav class="nav flex-column p-2 small">
+                <a th:href="@{/todo/list}" class="nav-link active">🏠 일정 목록</a>
+                <a th:href="@{/todo/register}" class="nav-link text-dark">➕ 새 일정 등록</a>
+            </nav>
+            <form th:action="@{/user/logout}" method="post" class="p-2 mt-auto">
+                <button type="submit" class="btn btn-outline-secondary btn-sm w-100">🚪 로그아웃</button>
+            </form>
+        </aside>
 
-			<div class="flex-fill d-flex flex-column overflow-auto">
-			    <header class="border-bottom px-3 py-2 small text-muted d-flex justify-content-between align-items-center">
-			        <span>DayPlanner / 일정 목록</span>
-			        <form th:action="@{/user/logout}" method="post" class="m-0">
-			            <button type="submit" class="btn btn-outline-secondary btn-sm">🚪 로그아웃</button>
-			        </form>
-			    </header>
+        <div class="flex-fill d-flex flex-column overflow-auto">
+            <header class="border-bottom px-3 py-2 small text-muted">DayPlanner / 일정 목록</header>
 
             <main class="p-4 p-md-5">
                 <div class="mx-auto" style="max-width:720px;">

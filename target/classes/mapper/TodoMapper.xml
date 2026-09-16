@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.oti.project.mapper.TodoMapper">
+
+    <insert id="insertTodo" parameterType="kr.or.oti.project.domain.Todo">
+        <selectKey keyProperty="todo_id" resultType="Long" order="BEFORE">
+            SELECT todo_seq.NEXTVAL FROM DUAL
+        </selectKey>
+        INSERT INTO todo (todo_id, user_id, title, content, schedule_date, is_checked)
+        VALUES (#{todo_id}, #{user_id}, #{title}, #{content}, #{schedule_date}, #{is_checked})
+    </insert>
+
+    <select id="selectTodoListByUser" parameterType="String" resultType="kr.or.oti.project.domain.Todo">
+        SELECT todo_id AS todo_id, user_id AS user_id, title, content,
+               schedule_date AS schedule_date, is_checked AS is_checked, file_url AS file_url
+        FROM todo
+        WHERE user_id = #{user_id}
+        ORDER BY schedule_date ASC
+    </select>
+
+    <select id="selectTodoById" parameterType="Long" resultType="kr.or.oti.project.domain.Todo">
+        SELECT todo_id AS todo_id, user_id AS user_id, title, content,
+               schedule_date AS schedule_date, is_checked AS is_checked, file_url AS file_url
+        FROM todo
+        WHERE todo_id = #{todo_id}
+    </select>
+
+    <update id="updateTodo" parameterType="kr.or.oti.project.domain.Todo">
+        UPDATE todo
+        SET title = #{title},
+            content = #{content},
+            schedule_date = #{schedule_date},
+            is_checked = #{is_checked}
+        WHERE todo_id = #{todo_id}
+    </update>
+
+    <delete id="deleteTodo" parameterType="Long">
+        DELETE FROM todo
+        WHERE todo_id = #{todo_id}
+    </delete>
+
+    <select id="searchTodoByTitle" resultType="kr.or.oti.project.domain.Todo">
+        SELECT todo_id AS todo_id, user_id AS user_id, title, content,
+               schedule_date AS schedule_date, is_checked AS is_checked, file_url AS file_url
+        FROM todo
+        WHERE user_id = #{user_id}
+          AND title LIKE '%' || #{keyword} || '%'
+        ORDER BY schedule_date ASC
+    </select>
+
+</mapper>

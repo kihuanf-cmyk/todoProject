@@ -5,11 +5,10 @@ import kr.or.oti.project.dto.TodoSaveRequestDto;
 import kr.or.oti.project.dto.TodoUpdateRequestDto;
 import kr.or.oti.project.service.TodoService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
-
-import javax.servlet.http.HttpSession;
 
 @Controller
 @RequestMapping("/todo")
@@ -20,16 +19,13 @@ public class TodoController {
 
     // 목록 조회
     @GetMapping("/list")
-    public String list(Model model, HttpSession session) {
-        if (session.getAttribute("user_id") == null) {
-            session.setAttribute("user_id", "test01"); // 로그인 붙기 전 임시 테스트용
-        }
-        String user_id = (String) session.getAttribute("user_id");
+    public String list(Model model, Authentication authentication) {
+        String user_id = authentication.getName(); // 현재 로그인한 사용자의 아이디
         model.addAttribute("todoList", todoService.getTodoList(user_id));
         return "todo/list";
     }
 
-    // 등록 폼 조회 - register.html을 보여주는 GET 메서드 (새로 추가)
+    // 등록 폼 조회
     @GetMapping("/register")
     public String registerForm() {
         return "todo/register";
@@ -37,20 +33,20 @@ public class TodoController {
 
     // 등록
     @PostMapping("/save")
-    public String save(@ModelAttribute TodoSaveRequestDto dto, HttpSession session) {
-        String user_id = (String) session.getAttribute("user_id");
+    public String save(@ModelAttribute TodoSaveRequestDto dto, Authentication authentication) {
+        String user_id = authentication.getName();
         todoService.saveTodo(dto, user_id);
         return "redirect:/todo/list";
     }
 
-    // 상세 조회 - read.html로 뷰 이름 변경
+    // 상세 조회
     @GetMapping("/{todo_id}")
     public String detail(@PathVariable Long todo_id, Model model) {
         model.addAttribute("todo", todoService.getTodo(todo_id));
         return "todo/read";
     }
 
-    // 수정 폼 조회 - modify.html에 기존 값 채워서 보여주는 GET 메서드
+    // 수정 폼 조회
     @GetMapping("/modify/{todo_id}")
     public String modifyForm(@PathVariable Long todo_id, Model model) {
         model.addAttribute("todo", todoService.getTodo(todo_id));

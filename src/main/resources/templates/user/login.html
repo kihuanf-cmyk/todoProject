@@ -27,6 +27,11 @@
                 <label class="form-label small fw-semibold text-muted">비밀번호</label>
                 <input type="password" name="pwd" placeholder="비밀번호를 입력하세요" class="form-control" required>
             </div>
+			<!-- 추가: name은 반드시 remember-me (위 rememberMeParameter와 동일해야 함) -->
+			<div class="form-check mb-3">
+			    <input type="checkbox" class="form-check-input" id="rememberMe" name="remember-me">
+			    <label class="form-check-label" for="rememberMe">로그인 상태 유지</label>
+			</div>
             <div class="d-flex gap-2 pt-2">
                 <button type="submit" class="btn btn-dark btn-sm">로그인</button>
             </div>

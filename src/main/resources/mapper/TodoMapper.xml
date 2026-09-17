@@ -10,12 +10,34 @@
         VALUES (#{todo_id}, #{user_id}, #{title}, #{content}, #{schedule_date}, #{is_checked})
     </insert>
 
-    <select id="selectTodoListByUser" parameterType="String" resultType="kr.or.oti.project.domain.Todo">
+    <!--
+        목록 조회 + 검색 + 페이징 통합 쿼리
+        - keyword가 없으면 전체 목록, 있으면 제목 검색 결과만 조회
+        - OFFSET/FETCH로 페이지 단위로 잘라서 가져옴 (Oracle 12c 이상 문법)
+    -->
+    <select id="selectTodoList" parameterType="kr.or.oti.project.dto.PageRequestDTO" resultType="kr.or.oti.project.domain.Todo">
         SELECT todo_id AS todo_id, user_id AS user_id, title, content,
                schedule_date AS schedule_date, is_checked AS is_checked, file_url AS file_url
         FROM todo
         WHERE user_id = #{user_id}
+        <if test="keyword != null and keyword != ''">
+            AND title LIKE '%' || #{keyword} || '%'
+        </if>
         ORDER BY schedule_date ASC
+        OFFSET #{offset} ROWS FETCH NEXT #{amount} ROWS ONLY
+    </select>
+
+    <!--
+        전체 개수 조회 (페이지 번호 계산용)
+        WHERE 조건은 반드시 selectTodoList와 동일하게 유지 — 안 그러면 페이지 개수가 실제 결과와 안 맞음
+    -->
+    <select id="getTotalCount" parameterType="kr.or.oti.project.dto.PageRequestDTO" resultType="int">
+        SELECT COUNT(*)
+        FROM todo
+        WHERE user_id = #{user_id}
+        <if test="keyword != null and keyword != ''">
+            AND title LIKE '%' || #{keyword} || '%'
+        </if>
     </select>
 
     <select id="selectTodoById" parameterType="Long" resultType="kr.or.oti.project.domain.Todo">
@@ -38,19 +60,5 @@
         DELETE FROM todo
         WHERE todo_id = #{todo_id}
     </delete>
-
-    <!--
-        검색 기능 SQL
-        @Param("user_id"), @Param("keyword") 덕분에
-        #{user_id}, #{keyword} 가 정확히 어떤 값인지 MyBatis 가 구분할 수 있음
-    -->
-    <select id="searchTodoByTitle" resultType="kr.or.oti.project.domain.Todo">
-        SELECT todo_id AS todo_id, user_id AS user_id, title, content,
-               schedule_date AS schedule_date, is_checked AS is_checked, file_url AS file_url
-        FROM todo
-        WHERE user_id = #{user_id}
-          AND title LIKE '%' || #{keyword} || '%'
-        ORDER BY schedule_date ASC
-    </select>
 
 </mapper>

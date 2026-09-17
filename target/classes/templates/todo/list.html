@@ -39,20 +39,20 @@
                     </div>
 
                     <!-- 검색 폼 -->
-                    <form th:action="@{/todo/list}" method="get" class="mb-4">
-                        <div class="input-group input-group-sm">
-                            <input type="text"
-                                   name="keyword"
-                                   class="form-control"
-                                   placeholder="제목으로 검색"
-                                   th:value="${keyword}">
-                            <button type="submit" class="btn btn-outline-secondary">🔍 검색</button>
-                            <!-- 검색어가 있을 때만 전체보기 버튼 노출 -->
-                            <a th:if="${keyword != null and !#strings.isEmpty(keyword)}"
-                               th:href="@{/todo/list}"
-                               class="btn btn-outline-dark">✕ 전체보기</a>
-                        </div>
-                    </form>
+					<!-- 수정 코드: nav를 input-group 밖으로 빼서 폼 자체도 벗어나고, 목록(list-group) 다음으로 이동 -->
+					<form th:action="@{/todo/list}" method="get" class="mb-4">
+					    <div class="input-group input-group-sm">
+					        <input type="text"
+					               name="keyword"
+					               class="form-control"
+					               placeholder="제목으로 검색"
+					               th:value="${keyword}">
+					        <button type="submit" class="btn btn-outline-secondary">🔍 검색</button>
+					        <a th:if="${keyword != null and !#strings.isEmpty(keyword)}"
+					           th:href="@{/todo/list}"
+					           class="btn btn-outline-dark">✕ 전체보기</a>
+					    </div>
+					</form>                    
 
                     <!-- 검색 결과 안내 문구 -->
                     <p th:if="${keyword != null and !#strings.isEmpty(keyword)}"
@@ -85,7 +85,28 @@
                             <span class="text-muted small">열기 &rarr;</span>
                         </a>
                     </div>
+					<!-- 페이징 UI: 목록 아래, 폼 바깥에 독립적으로 위치 -->
+					<nav th:if="${pageResponseDTO.totalCount > 0}" class="mt-4">
+					    <ul class="pagination justify-content-center">
+					        <li class="page-item" th:classappend="${!pageResponseDTO.prev} ? 'disabled'">
+					            <a class="page-link"
+					               th:href="@{/todo/list(page=${pageResponseDTO.startPage - 1}, keyword=${keyword})}">이전</a>
+					        </li>
 
+					        <li class="page-item"
+					            th:each="pageNum : ${#numbers.sequence(pageResponseDTO.startPage, pageResponseDTO.endPage)}"
+					            th:classappend="${pageNum == pageResponseDTO.pag.page} ? 'active'">
+					            <a class="page-link"
+					               th:href="@{/todo/list(page=${pageNum}, keyword=${keyword})}"
+					               th:text="${pageNum}"></a>
+					        </li>
+
+					        <li class="page-item" th:classappend="${!pageResponseDTO.next} ? 'disabled'">
+					            <a class="page-link"
+					               th:href="@{/todo/list(page=${pageResponseDTO.endPage + 1}, keyword=${keyword})}">다음</a>
+					        </li>
+					    </ul>
+					</nav>
                 </div>
             </main>
         </div>

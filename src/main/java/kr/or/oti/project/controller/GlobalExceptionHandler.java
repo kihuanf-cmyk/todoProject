@@ -6,11 +6,14 @@ import org.springframework.validation.BindException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * ✅ 전역 예외 처리 클래스
  *
  * @ControllerAdvice : 모든 컨트롤러에서 발생하는 예외를 한 곳에서 모아서 처리합니다.
  */
+@Slf4j
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -28,6 +31,7 @@ public class GlobalExceptionHandler {
         if (e.getBindingResult().hasErrors()) {
             errorMessage = e.getBindingResult().getAllErrors().get(0).getDefaultMessage();
         }
+        log.warn("입력값 검증 실패 - errorMessage={}", errorMessage);
         model.addAttribute("errorMessage", errorMessage);
         return "error/error";
     }
@@ -38,6 +42,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(AccessDeniedException.class)
     public String handleAccessDenied(AccessDeniedException e, Model model) {
+    	log.warn("접근 권한 없음 - message={}", e.getMessage());
         model.addAttribute("errorCode", "403");
         model.addAttribute("errorTitle", "접근 권한이 없습니다");
         model.addAttribute("errorMessage", e.getMessage() != null ? e.getMessage() : "해당 데이터에 접근할 권한이 없습니다.");
@@ -50,7 +55,8 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(IllegalArgumentException.class)
     public String handleIllegalArgument(IllegalArgumentException e, Model model) {
-        model.addAttribute("errorCode", "404");
+        log.warn("존재하지 않는 리소스 요청 - message={}", e.getMessage());
+    	model.addAttribute("errorCode", "404");
         model.addAttribute("errorTitle", "항목을 찾을 수 없습니다");
         model.addAttribute("errorMessage", e.getMessage());
         return "error/error";
@@ -62,6 +68,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(Exception.class)
     public String handleAllException(Exception e, Model model) {
+    	log.error("예상하지 못한 서버 오류 발생", e);
         model.addAttribute("errorCode", "500");
         model.addAttribute("errorTitle", "서버 오류가 발생했습니다");
         model.addAttribute("errorMessage", "일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");

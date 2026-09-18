@@ -73,7 +73,8 @@
 
                     <!-- 일정 목록 -->
                     <div class="list-group">
-                        <a th:each="item : ${todoList}" th:href="@{/todo/{id}(id=${item.todo_id})}"
+                                <a th:each="item : ${todoList}"
+                                    th:href="@{/todo/{id}(id=${item.todo_id}, page=${pageResponseDTO.pag.page}, keyword=${keyword})}"
                            class="list-group-item list-group-item-action d-flex align-items-center gap-3">
                             <span th:if="${item.is_checked == 'Y'}">✅</span>
                             <span th:unless="${item.is_checked == 'Y'}" class="text-muted">⬜</span>

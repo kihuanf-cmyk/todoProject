@@ -12,6 +12,8 @@
 
         <form th:action="@{/todo/update}" method="post">
             <input type="hidden" name="todo_id" th:value="${todo.todo_id}">
+            <input type="hidden" name="page" th:value="${page}">
+            <input type="hidden" name="keyword" th:value="${keyword}">
 
             <div class="mb-3">
                 <label class="form-label small fw-semibold text-muted">날짜</label>
@@ -34,7 +36,7 @@
             </div>
             <div class="d-flex gap-2 pt-2">
                 <button type="submit" class="btn btn-dark btn-sm">변경사항 저장</button>
-                <a th:href="@{/todo/{id}(id=${todo.todo_id})}" class="btn btn-light btn-sm">돌아가기</a>
+                <a th:href="@{/todo/{id}(id=${todo.todo_id}, page=${page}, keyword=${keyword})}" class="btn btn-light btn-sm">돌아가기</a>
             </div>
         </form>
     </main>

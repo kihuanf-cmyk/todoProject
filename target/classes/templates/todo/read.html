@@ -24,11 +24,11 @@
         </div>
 
         <div class="d-flex gap-2 pt-2">
-            <a th:href="@{/todo/modify/{id}(id=${todo.todo_id})}" class="btn btn-dark btn-sm">수정</a>
+            <a th:href="@{/todo/modify/{id}(id=${todo.todo_id}, page=${page}, keyword=${keyword})}" class="btn btn-dark btn-sm">수정</a>
             <form id="deleteForm" th:action="@{/todo/delete/{id}(id=${todo.todo_id})}" method="post" class="d-inline">
                 <button type="submit" class="btn btn-outline-danger btn-sm">삭제</button>
             </form>
-            <a th:href="@{/todo/list}" class="btn btn-light btn-sm">목록으로</a>
+            <a th:href="@{/todo/list(page=${page}, keyword=${keyword})}" class="btn btn-light btn-sm">목록으로</a>
         </div>
     </main>
 

@@ -1,10 +1,10 @@
 kr\or\oti\project\controller\TestController.class
-kr\or\oti\project\TodoProjectApplication.class
 kr\or\oti\project\dto\TodoSaveRequestDto.class
-kr\or\oti\project\dto\TodoUpdateRequestDto.class
 kr\or\oti\project\service\impl\TodoServiceImpl.class
-kr\or\oti\project\controller\TodoController.class
 kr\or\oti\project\domain\Todo.class
+kr\or\oti\project\TodoProjectApplication.class
+kr\or\oti\project\dto\TodoUpdateRequestDto.class
+kr\or\oti\project\controller\TodoController.class
 kr\or\oti\project\mapper\UserMapper.class
 kr\or\oti\project\dto\TodoResponseDto.class
 kr\or\oti\project\mapper\TodoMapper.class

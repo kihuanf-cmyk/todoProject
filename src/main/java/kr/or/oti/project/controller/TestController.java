@@ -22,6 +22,12 @@ public class TestController {
         return "Hello World";
     }
 
+    // 브라우저에서 자동화 테스트와 수동 확인 주소를 한 번에 확인하는 안내 화면
+    @GetMapping("/test-guide")
+    public String testGuide() {
+        return "자동 테스트: TodoTests, UserTests / 브라우저 확인: /hello, /db-test, /mapper-test";
+    }
+
     @GetMapping("/db-test")
     public String dbTest() {
         try (Connection conn = dataSource.getConnection()) {

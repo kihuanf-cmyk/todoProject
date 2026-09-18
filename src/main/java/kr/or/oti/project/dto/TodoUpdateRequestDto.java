@@ -28,4 +28,7 @@ public class TodoUpdateRequestDto {
 
     @Pattern(regexp = "^[YN]$", message = "완료 여부는 Y 또는 N이어야 합니다.")
     private String is_checked;
+
+    private int page = 1;
+    private String keyword;
 }

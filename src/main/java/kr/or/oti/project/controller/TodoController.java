@@ -17,6 +17,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Slf4j
 @Controller
@@ -68,28 +69,46 @@ public class TodoController {
 
 	// 상세 조회 (남의 일정 조회 차단을 위해 user_id 전달)
 	@GetMapping("/{todo_id}")
-	public String detail(@PathVariable Long todo_id, Authentication authentication, Model model) {
+	public String detail(@PathVariable Long todo_id,
+	                     @RequestParam(defaultValue = "1") int page,
+	                     @RequestParam(required = false) String keyword,
+	                     Authentication authentication,
+	                     Model model) {
 		String user_id = authentication.getName();
 		log.debug("상세 조회 요청 - todo_id={}, user_id={}", todo_id, user_id);
 		model.addAttribute("todo", todoService.getTodo(todo_id, user_id));
+		model.addAttribute("page", page);
+		model.addAttribute("keyword", keyword);
 		return "todo/read";
 	}
 
 	// 수정 폼 조회 (남의 일정 수정 폼 접근 차단을 위해 user_id 전달)
 	@GetMapping("/modify/{todo_id}")
-	public String modifyForm(@PathVariable Long todo_id, Authentication authentication, Model model) {
+	public String modifyForm(@PathVariable Long todo_id,
+	                         @RequestParam(defaultValue = "1") int page,
+	                         @RequestParam(required = false) String keyword,
+	                         Authentication authentication,
+	                         Model model) {
 		String user_id = authentication.getName();
 		log.debug("수정 폼 조회 - todo_id={}, user_id={}", todo_id, user_id);
 		model.addAttribute("todo", todoService.getTodo(todo_id, user_id));
+		model.addAttribute("page", page);
+		model.addAttribute("keyword", keyword);
 		return "todo/modify";
 	}
 
 	// 수정 (@Valid 유효성 검증 및 남의 일정 수정 방어)
 	@PostMapping("/update")
-	public String update(@Valid @ModelAttribute TodoUpdateRequestDto dto, Authentication authentication) {
+	public String update(@Valid @ModelAttribute TodoUpdateRequestDto dto,
+	                     Authentication authentication,
+	                     RedirectAttributes redirectAttributes) {
 		String user_id = authentication.getName();
 		todoService.updateTodo(dto, user_id);
 		log.info("일정 수정 완료 - user_id={}, todo_id={}", user_id, dto.getTodo_id()); // ← 추가 (필드명은 실제 DTO 확인)
+		redirectAttributes.addAttribute("page", dto.getPage());
+		if (dto.getKeyword() != null && !dto.getKeyword().isEmpty()) {
+			redirectAttributes.addAttribute("keyword", dto.getKeyword());
+		}
 		return "redirect:/todo/list";
 	}
 

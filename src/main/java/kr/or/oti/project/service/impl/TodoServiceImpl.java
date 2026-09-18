@@ -1,127 +1,176 @@
 package kr.or.oti.project.service.impl;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
 import kr.or.oti.project.domain.Todo;
+import kr.or.oti.project.domain.TodoFile;
 import kr.or.oti.project.dto.PageRequestDTO;
 import kr.or.oti.project.dto.TodoResponseDto;
 import kr.or.oti.project.dto.TodoSaveRequestDto;
 import kr.or.oti.project.dto.TodoUpdateRequestDto;
+import kr.or.oti.project.mapper.TodoFileMapper;
 import kr.or.oti.project.mapper.TodoMapper;
 import kr.or.oti.project.service.TodoService;
+import kr.or.oti.project.util.FileStorageUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.stereotype.Service;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class TodoServiceImpl implements TodoService {
 
-    private final TodoMapper todoMapper;
+	private final TodoMapper todoMapper;
+	private final TodoFileMapper todoFileMapper;
+	private final FileStorageUtil fileStorageUtil;
+	
+	// 등록
+	@Override
+	public void saveTodo(TodoSaveRequestDto dto, String user_id, MultipartFile[] files) {
+		Todo todo = new Todo();
+		todo.setUser_id(user_id);
+		todo.setTitle(dto.getTitle());
+		todo.setContent(dto.getContent());
+		todo.setSchedule_date(dto.getSchedule_date());
+		todo.setStatus("TODO");
+		todoMapper.insertTodo(todo);
+		saveFiles(files, todo.getTodo_id());
+		log.info("일정 등록 완료 - user_id={}, title={}", user_id, dto.getTitle());
+	}
+	
+	// 목록 조회
 
-    // 등록
-    @Override
-    public void saveTodo(TodoSaveRequestDto dto, String user_id) {
-        Todo todo = new Todo();
-        todo.setUser_id(user_id);
-        todo.setTitle(dto.getTitle());
-        todo.setContent(dto.getContent());
-        todo.setSchedule_date(dto.getSchedule_date());
-        todo.setIs_checked("N");
-        todoMapper.insertTodo(todo);
-        log.info("일정 등록 완료 - user_id={}, title={}", user_id, dto.getTitle()); // 추가
-    }
+	@Override
+	public List<TodoResponseDto> getTodoList(PageRequestDTO pag) {
+		log.debug("목록 조회 - user_id={}, keyword={}, page={}", pag.getUser_id(), pag.getKeyword(), pag.getPage());
+		return todoMapper.selectTodoList(pag).stream().map(TodoResponseDto::from).collect(Collectors.toList());
+	}
 
-    // 목록 조회
-    
-    @Override
-    public List<TodoResponseDto> getTodoList(PageRequestDTO pag) {
-        log.debug("목록 조회 - user_id={}, keyword={}, page={}", pag.getUser_id(), pag.getKeyword(), pag.getPage());
-        return todoMapper.selectTodoList(pag).stream()
-                .map(TodoResponseDto::from)
-                .collect(Collectors.toList());
-    }
+	// 상세 조회 - 존재 여부 확인 후, 본인의 일정인지 소유권 검증
+	@Override
+	public TodoResponseDto getTodo(Long todo_id, String user_id) {
+		Todo todo = todoMapper.selectTodoById(todo_id);
 
-    // 상세 조회 - 존재 여부 확인 후, 본인의 일정인지 소유권 검증
-    @Override
-    public TodoResponseDto getTodo(Long todo_id, String user_id) {
-        Todo todo = todoMapper.selectTodoById(todo_id);
+		if (todo == null) {
+			throw new IllegalArgumentException("존재하지 않는 일정입니다.");
+		}
 
-        if (todo == null) {
-            throw new IllegalArgumentException("존재하지 않는 일정입니다.");
-        }
+		// 남의 일정 조회 시도 차단 (소유권 검증)
+		if (!todo.getUser_id().equals(user_id)) {
+			log.warn("소유권 불일치 - todo_id={}, 작성자={}, 요청자={}", todo_id, todo.getUser_id(), user_id);
+			throw new AccessDeniedException("해당 일정을 조회할 권한이 없습니다.");
+		}
 
-        // 남의 일정 조회 시도 차단 (소유권 검증)
-        if (!todo.getUser_id().equals(user_id)) {
-            log.warn("소유권 불일치 - todo_id={}, 작성자={}, 요청자={}",
-                    todo_id, todo.getUser_id(), user_id); // 추가 (existing 대신 todo 사용, 이 메서드는 변수명이 todo)
-            throw new AccessDeniedException("해당 일정을 조회할 권한이 없습니다.");
-        }
+		// 상세 조회 시에만 첨부파일 목록도 같이 가져옴
+		List<TodoFile> files = todoFileMapper.selectFilesByTodoId(todo_id);
+		return TodoResponseDto.from(todo, files);
+	}
+	
+	//존재 여부 확인 후, 본인의 일정인지 소유권 검증 후 수정 실행
+	@Override
+	public void updateTodo(TodoUpdateRequestDto dto, String user_id, MultipartFile[] files) {
+		Todo existing = todoMapper.selectTodoById(dto.getTodo_id());
 
-        return TodoResponseDto.from(todo);
-    }
+		if (existing == null) {
+			throw new IllegalArgumentException("수정할 일정을 찾을 수 없습니다.");
+		}
 
-    // 수정 - 존재 여부 확인 후, 본인의 일정인지 소유권 검증 후 수정 실행
-    @Override
-    public void updateTodo(TodoUpdateRequestDto dto, String user_id) {
-        Todo existing = todoMapper.selectTodoById(dto.getTodo_id());
+		// 남의 일정 수정 시도 차단 (소유권 검증)
+		if (!existing.getUser_id().equals(user_id)) {
+			log.warn("소유권 불일치 - todo_id={}, 작성자={}, 요청자={}", dto.getTodo_id(), existing.getUser_id(), user_id);
+			throw new AccessDeniedException("해당 일정을 수정할 권한이 없습니다.");
+		}
 
-        if (existing == null) {
-            throw new IllegalArgumentException("수정할 일정을 찾을 수 없습니다.");
-        }
+		Todo todo = new Todo();
+		todo.setTodo_id(dto.getTodo_id());
+		todo.setTitle(dto.getTitle());
+		todo.setContent(dto.getContent());
+		todo.setSchedule_date(dto.getSchedule_date());
+		todo.setStatus(dto.getStatus());
+		
+		int updatedRows = todoMapper.updateTodo(todo);
+		if (updatedRows == 0) {
+			throw new IllegalArgumentException("수정할 일정을 찾을 수 없습니다.");
+		}
+		saveFiles(files, dto.getTodo_id());
+		log.info("일정 수정 완료 - user_id={}, todo_id={}", user_id, dto.getTodo_id());
+	}
 
-        // 남의 일정 수정 시도 차단 (소유권 검증)
-        if (!existing.getUser_id().equals(user_id)) {
-            log.warn("소유권 불일치 - todo_id={}, 작성자={}, 요청자={}",
-                    dto.getTodo_id(), existing.getUser_id(), user_id);
-            throw new AccessDeniedException("해당 일정을 수정할 권한이 없습니다.");
-        }
+	// 삭제 - 존재 여부 확인 후, 본인의 일정인지 소유권 검증 후 삭제 실행
+	@Override
+	public void deleteTodo(Long todo_id, String user_id) {
+		Todo existing = todoMapper.selectTodoById(todo_id);
 
-        Todo todo = new Todo();
-        todo.setTodo_id(dto.getTodo_id());
-        todo.setTitle(dto.getTitle());
-        todo.setContent(dto.getContent());
-        todo.setSchedule_date(dto.getSchedule_date());
-        todo.setIs_checked(dto.getIs_checked());
+		if (existing == null) {
+			throw new IllegalArgumentException("삭제할 일정을 찾을 수 없습니다.");
+		}
 
-        int updatedRows = todoMapper.updateTodo(todo);
-        if (updatedRows == 0) {
-            throw new IllegalArgumentException("수정할 일정을 찾을 수 없습니다.");
-        }
-        log.info("일정 수정 완료 - user_id={}, todo_id={}", user_id, dto.getTodo_id());
-    }
+		// 남의 일정 삭제 시도 차단 (소유권 검증)
+		if (!existing.getUser_id().equals(user_id)) {
+			log.warn("소유권 불일치 - todo_id={}, 작성자={}, 요청자={}", todo_id, existing.getUser_id(), user_id);
+			throw new AccessDeniedException("해당 일정을 삭제할 권한이 없습니다.");
+		}
 
-    // 삭제 - 존재 여부 확인 후, 본인의 일정인지 소유권 검증 후 삭제 실행
-    @Override
-    public void deleteTodo(Long todo_id, String user_id) {
-        Todo existing = todoMapper.selectTodoById(todo_id);
+		// FK 제약조건 때문에 자식 레코드(TODO_FILE)부터 먼저 삭제해야 함
+		todoFileMapper.deleteFilesByTodoId(todo_id);
 
-        if (existing == null) {
-            throw new IllegalArgumentException("삭제할 일정을 찾을 수 없습니다.");
-        }
+		int deletedRows = todoMapper.deleteTodo(todo_id);
+		if (deletedRows == 0) {
+			throw new IllegalArgumentException("삭제할 일정을 찾을 수 없습니다.");
+		}
+		log.info("일정 삭제 완료 - user_id={}, todo_id={}", user_id, todo_id);
+	}
+	
+	// 첨부파일 개별 삭제 - 해당 파일이 요청자 소유의 일정에 속하는지 검증 후 삭제
+	@Override
+	public void deleteTodoFile(Long file_id, String user_id) {
+		TodoFile file = todoFileMapper.selectFileById(file_id);
 
-        // 남의 일정 삭제 시도 차단 (소유권 검증)
-        if (!existing.getUser_id().equals(user_id)) {
-            log.warn("소유권 불일치 - todo_id={}, 작성자={}, 요청자={}",
-                    todo_id, existing.getUser_id(), user_id);
-            throw new AccessDeniedException("해당 일정을 삭제할 권한이 없습니다.");
-        }
+		if (file == null) {
+			throw new IllegalArgumentException("삭제할 파일을 찾을 수 없습니다.");
+		}
 
-        int deletedRows = todoMapper.deleteTodo(todo_id);
-        if (deletedRows == 0) {
-            throw new IllegalArgumentException("삭제할 일정을 찾을 수 없습니다.");
-        }
-        log.info("일정 삭제 완료 - user_id={}, todo_id={}", user_id, todo_id);
-    }
+		Todo owningTodo = todoMapper.selectTodoById(file.getTodo_id());
+		if (owningTodo == null || !owningTodo.getUser_id().equals(user_id)) {
+			log.warn("소유권 불일치 - file_id={}, todo_id={}, 요청자={}", file_id, file.getTodo_id(), user_id);
+			throw new AccessDeniedException("해당 파일을 삭제할 권한이 없습니다.");
+		}
 
-    // 제목 검색
-    
-    @Override
-    public int getTotalCount(PageRequestDTO pag) {
-        return todoMapper.getTotalCount(pag);
-    }
+		todoFileMapper.deleteTodoFileById(file_id);
+		log.info("첨부파일 삭제 완료 - file_id={}, todo_id={}, 요청자={}", file_id, file.getTodo_id(), user_id);
+	}
+	
+	// 제목 검색
+
+	@Override
+	public int getTotalCount(PageRequestDTO pag) {
+		return todoMapper.getTotalCount(pag);
+	}
+	
+	// 첨부파일 저장 공통 로직 - 파일을 디스크에 쓰고 TODO_FILE에 기록
+	private void saveFiles(MultipartFile[] files, Long todo_id) {
+		if (files == null || files.length == 0) {
+			return;
+		}
+		int savedCount = 0;
+		for (MultipartFile file : files) {
+			if (file.isEmpty()) {
+				continue;
+			}
+			String savedName = fileStorageUtil.storeFile(file);
+
+			TodoFile todoFile = new TodoFile();
+			todoFile.setTodo_id(todo_id);
+			todoFile.setFile_url(savedName);
+			todoFile.setFile_name(file.getOriginalFilename());
+			todoFileMapper.insertTodoFile(todoFile);
+			savedCount++;
+		}
+		log.debug("첨부파일 저장 완료 - todo_id={}, 요청건수={}, 저장건수={}", todo_id, files.length, savedCount);
+	}
 }

@@ -4,6 +4,18 @@ import java.util.List;
 
 import javax.validation.Valid;
 
+import org.springframework.security.core.Authentication;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
 import kr.or.oti.project.dto.PageRequestDTO;
 import kr.or.oti.project.dto.PageResponseDTO;
 import kr.or.oti.project.dto.TodoResponseDto;
@@ -12,12 +24,6 @@ import kr.or.oti.project.dto.TodoUpdateRequestDto;
 import kr.or.oti.project.service.TodoService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
-import org.springframework.security.core.Authentication;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Slf4j
 @Controller
@@ -60,13 +66,14 @@ public class TodoController {
 
 	// 등록 (@Valid 를 통해 빈 제목, 글자 수 초과 등을 서버 단에서 검증)
 	@PostMapping("/save")
-	public String save(@Valid @ModelAttribute TodoSaveRequestDto dto, Authentication authentication) {
+	public String save(@Valid @ModelAttribute TodoSaveRequestDto dto,
+	                   Authentication authentication,
+	                   @RequestParam(value = "files", required = false) MultipartFile[] files) {
 		String user_id = authentication.getName();
 		log.info("일정 등록 완료 - user_id={}, title={}", user_id, dto.getTitle());
-		todoService.saveTodo(dto, user_id);
+		todoService.saveTodo(dto, user_id, files);
 		return "redirect:/todo/list";
 	}
-
 	// 상세 조회 (남의 일정 조회 차단을 위해 user_id 전달)
 	@GetMapping("/{todo_id}")
 	public String detail(@PathVariable Long todo_id,
@@ -101,9 +108,10 @@ public class TodoController {
 	@PostMapping("/update")
 	public String update(@Valid @ModelAttribute TodoUpdateRequestDto dto,
 	                     Authentication authentication,
-	                     RedirectAttributes redirectAttributes) {
+	                     RedirectAttributes redirectAttributes,
+	                     @RequestParam(value = "files", required = false) MultipartFile[] files) {
 		String user_id = authentication.getName();
-		todoService.updateTodo(dto, user_id);
+		todoService.updateTodo(dto, user_id, files);
 		log.info("일정 수정 완료 - user_id={}, todo_id={}", user_id, dto.getTodo_id()); // ← 추가 (필드명은 실제 DTO 확인)
 		redirectAttributes.addAttribute("page", dto.getPage());
 		if (dto.getKeyword() != null && !dto.getKeyword().isEmpty()) {
@@ -120,4 +128,17 @@ public class TodoController {
 		todoService.deleteTodo(todo_id, user_id);
 		return "redirect:/todo/list";
 	}
+	
+	// 첨부파일 개별 삭제 - modify.html에서 파일별 삭제 버튼 클릭 시 호출
+	@PostMapping("/file/delete/{file_id}")
+	public String deleteFile(@PathVariable Long file_id,
+	                         Authentication authentication,
+	                         @RequestParam Long todo_id,
+	                         @RequestParam(required = false) Integer page,
+	                         @RequestParam(required = false) String keyword) {
+		String user_id = authentication.getName();
+		todoService.deleteTodoFile(file_id, user_id);
+		return "redirect:/todo/modify/" + todo_id + "?page=" + page + "&keyword=" + (keyword != null ? keyword : "");
+	}
+	
 }

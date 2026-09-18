@@ -1,12 +1,13 @@
 package kr.or.oti.project.service.impl;
 
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
 import kr.or.oti.project.domain.User;
 import kr.or.oti.project.domain.UserRole;
 import kr.or.oti.project.mapper.UserMapper;
 import kr.or.oti.project.service.UserService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
 
 //수정 (login 삭제, role 기본값 추가)
 @Service

@@ -6,10 +6,17 @@
         <selectKey keyProperty="todo_id" resultType="Long" order="BEFORE">
             SELECT todo_seq.NEXTVAL FROM DUAL
         </selectKey>
-        INSERT INTO todo (todo_id, user_id, title, content, schedule_date, is_checked)
-        VALUES (#{todo_id}, #{user_id}, #{title}, #{content}, #{schedule_date}, #{is_checked})
+        INSERT INTO todo (todo_id, user_id, title, content, schedule_date, status)
+        VALUES (#{todo_id}, #{user_id}, #{title}, #{content}, #{schedule_date}, #{status})
     </insert>
 
+    <select id="selectTodoById" parameterType="Long" resultType="kr.or.oti.project.domain.Todo">
+        SELECT todo_id AS todo_id, user_id AS user_id, title, content,
+               schedule_date AS schedule_date, status AS status
+        FROM todo
+        WHERE todo_id = #{todo_id}
+    </select>
+    
     <!--
         목록 조회 + 검색 + 페이징 통합 쿼리
         - keyword가 없으면 전체 목록, 있으면 제목 검색 결과만 조회
@@ -17,7 +24,7 @@
     -->
     <select id="selectTodoList" parameterType="kr.or.oti.project.dto.PageRequestDTO" resultType="kr.or.oti.project.domain.Todo">
         SELECT todo_id AS todo_id, user_id AS user_id, title, content,
-               schedule_date AS schedule_date, is_checked AS is_checked, file_url AS file_url
+               schedule_date AS schedule_date, status AS status
         FROM todo
         WHERE user_id = #{user_id}
         <if test="keyword != null and keyword != ''">
@@ -39,20 +46,13 @@
             AND title LIKE '%' || #{keyword} || '%'
         </if>
     </select>
-
-    <select id="selectTodoById" parameterType="Long" resultType="kr.or.oti.project.domain.Todo">
-        SELECT todo_id AS todo_id, user_id AS user_id, title, content,
-               schedule_date AS schedule_date, is_checked AS is_checked, file_url AS file_url
-        FROM todo
-        WHERE todo_id = #{todo_id}
-    </select>
-
+	
     <update id="updateTodo" parameterType="kr.or.oti.project.domain.Todo">
         UPDATE todo
         SET title = #{title},
             content = #{content},
             schedule_date = #{schedule_date},
-            is_checked = #{is_checked}
+            status = #{status}
         WHERE todo_id = #{todo_id}
     </update>
 

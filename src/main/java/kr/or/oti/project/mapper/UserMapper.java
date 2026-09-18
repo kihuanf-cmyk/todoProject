@@ -1,7 +1,8 @@
 package kr.or.oti.project.mapper;
 
-import kr.or.oti.project.domain.User;
 import org.apache.ibatis.annotations.Mapper;
+
+import kr.or.oti.project.domain.User;
 
 @Mapper
 public interface UserMapper {

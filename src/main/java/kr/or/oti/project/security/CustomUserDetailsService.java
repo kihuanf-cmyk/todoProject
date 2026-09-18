@@ -1,12 +1,13 @@
 package kr.or.oti.project.security;
 
-import kr.or.oti.project.domain.User;
-import kr.or.oti.project.mapper.UserMapper;
-import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+
+import kr.or.oti.project.domain.User;
+import kr.or.oti.project.mapper.UserMapper;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor

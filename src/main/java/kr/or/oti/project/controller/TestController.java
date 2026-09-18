@@ -1,11 +1,13 @@
 package kr.or.oti.project.controller;
 
+import java.sql.Connection;
+
+import javax.sql.DataSource;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import javax.sql.DataSource;
-import java.sql.Connection;
 import kr.or.oti.project.mapper.UserMapper;
 
 @RestController  // 화면(html) 없이 문자열을 그대로 브라우저에 출력

@@ -1,12 +1,11 @@
 package kr.or.oti.project.mapper;
 
-import kr.or.oti.project.domain.Todo;
-import kr.or.oti.project.dto.PageRequestDTO;
+import java.util.List;
 
 import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Param;
 
-import java.util.List;
+import kr.or.oti.project.domain.Todo;
+import kr.or.oti.project.dto.PageRequestDTO;
 
 @Mapper
 public interface TodoMapper {

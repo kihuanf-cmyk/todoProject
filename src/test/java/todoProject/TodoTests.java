@@ -3,6 +3,7 @@ package todoProject;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -17,13 +18,17 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.web.multipart.MultipartFile;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import kr.or.oti.project.domain.Todo;
+import kr.or.oti.project.domain.TodoFile;
 import kr.or.oti.project.dto.TodoResponseDto;
 import kr.or.oti.project.dto.TodoSaveRequestDto;
+import kr.or.oti.project.mapper.TodoFileMapper;
 import kr.or.oti.project.mapper.TodoMapper;
 import kr.or.oti.project.service.impl.TodoServiceImpl;
+import kr.or.oti.project.util.FileStorageUtil;
 
 // 테스트 작성일: 2026-09-17
 // 테스트 순서: 도메인 -> 서비스 -> DB/매퍼 -> 컨트롤러 -> DTO
@@ -45,14 +50,14 @@ class TodoTests {
 			todo.setTitle("병원 예약");
 			todo.setContent("오후 2시에 방문");
 			todo.setSchedule_date(scheduleDate);
-			todo.setIs_checked("N");
+			todo.setStatus("TODO");
 
 			assertThat(todo.getTodo_id()).isEqualTo(1L);
 			assertThat(todo.getUser_id()).isEqualTo("user01");
 			assertThat(todo.getTitle()).isEqualTo("병원 예약");
 			assertThat(todo.getContent()).isEqualTo("오후 2시에 방문");
 			assertThat(todo.getSchedule_date()).isEqualTo(scheduleDate);
-			assertThat(todo.getIs_checked()).isEqualTo("N");
+			assertThat(todo.getStatus()).isEqualTo("TODO");
 		}
 
 		@Test
@@ -63,7 +68,7 @@ class TodoTests {
 			todo.setTitle("운동");
 			todo.setContent("30분 걷기");
 			todo.setSchedule_date(Date.valueOf("2026-09-18"));
-			todo.setIs_checked("Y");
+			todo.setStatus("DONE");
 
 			TodoResponseDto response = TodoResponseDto.from(todo);
 
@@ -71,7 +76,7 @@ class TodoTests {
 			assertThat(response.getTitle()).isEqualTo("운동");
 			assertThat(response.getContent()).isEqualTo("30분 걷기");
 			assertThat(response.getSchedule_date()).isEqualTo(todo.getSchedule_date());
-			assertThat(response.getIs_checked()).isEqualTo("Y");
+			assertThat(response.getStatus()).isEqualTo("DONE");
 		}
 	}
 
@@ -83,6 +88,12 @@ class TodoTests {
 		@Mock
 		private TodoMapper todoMapper;
 
+		@Mock
+		private TodoFileMapper todoFileMapper;
+
+		@Mock
+		private FileStorageUtil fileStorageUtil;
+		
 		@InjectMocks
 		private TodoServiceImpl todoService;
 
@@ -94,7 +105,7 @@ class TodoTests {
 			request.setContent("테스트 코드 읽기");
 			request.setSchedule_date(Date.valueOf("2026-09-17"));
 
-			todoService.saveTodo(request, "user01");
+			todoService.saveTodo(request, "user01", null);
 
 			ArgumentCaptor<Todo> savedTodo = ArgumentCaptor.forClass(Todo.class);
 			verify(todoMapper).insertTodo(savedTodo.capture());
@@ -102,7 +113,7 @@ class TodoTests {
 			assertThat(savedTodo.getValue().getTitle()).isEqualTo("공부");
 			assertThat(savedTodo.getValue().getContent()).isEqualTo("테스트 코드 읽기");
 			assertThat(savedTodo.getValue().getSchedule_date()).isEqualTo(request.getSchedule_date());
-			assertThat(savedTodo.getValue().getIs_checked()).isEqualTo("N");
+			assertThat(savedTodo.getValue().getStatus()).isEqualTo("TODO");
 		}
 
 		@Test
@@ -136,6 +147,53 @@ class TodoTests {
 			when(todoMapper.selectTodoList(pageRequest)).thenReturn(Collections.emptyList());
 
 			assertThat(todoService.getTodoList(pageRequest)).isEmpty();
+		}
+		
+		@Test
+		@DisplayName("Todo를 등록할 때 첨부파일이 있으면 저장 후 TODO_FILE에 기록한다")
+		void Todo등록시첨부파일이있으면저장하고기록한다() {
+			TodoSaveRequestDto request = new TodoSaveRequestDto();
+			request.setTitle("공부");
+			request.setContent("테스트 코드 읽기");
+			request.setSchedule_date(Date.valueOf("2026-09-17"));
+
+			MultipartFile file1 = mock(MultipartFile.class);
+			when(file1.isEmpty()).thenReturn(false);
+			when(file1.getOriginalFilename()).thenReturn("자료.pdf");
+			when(fileStorageUtil.storeFile(file1)).thenReturn("uuid1_자료.pdf");
+
+			MultipartFile[] files = { file1 };
+
+			todoService.saveTodo(request, "user01", files);
+
+			// 실제 저장 로직(디스크 쓰기)이 호출됐는지
+			verify(fileStorageUtil).storeFile(file1);
+
+			// TODO_FILE에 올바른 값으로 insert 요청했는지
+			ArgumentCaptor<TodoFile> savedFile = ArgumentCaptor.forClass(TodoFile.class);
+			verify(todoFileMapper).insertTodoFile(savedFile.capture());
+			assertThat(savedFile.getValue().getFile_url()).isEqualTo("uuid1_자료.pdf");
+			assertThat(savedFile.getValue().getFile_name()).isEqualTo("자료.pdf");
+		}
+
+		@Test
+		@DisplayName("빈 파일(선택 안 한 input)이 섞여 있으면 해당 파일은 저장하지 않는다")
+		void 빈파일은저장하지않는다() {
+			TodoSaveRequestDto request = new TodoSaveRequestDto();
+			request.setTitle("공부");
+			request.setContent("테스트 코드 읽기");
+			request.setSchedule_date(Date.valueOf("2026-09-17"));
+
+			MultipartFile emptyFile = mock(MultipartFile.class);
+			when(emptyFile.isEmpty()).thenReturn(true);
+
+			MultipartFile[] files = { emptyFile };
+
+			todoService.saveTodo(request, "user01", files);
+
+			// isEmpty()가 true인 파일은 storeFile도, insertTodoFile도 호출되면 안 됨
+			verify(fileStorageUtil, never()).storeFile(any(MultipartFile.class));
+			verify(todoFileMapper, never()).insertTodoFile(any(TodoFile.class));
 		}
 	}
 }

@@ -10,7 +10,8 @@
     <main class="mx-auto p-4 p-md-5" style="max-width:480px;">
         <h1 class="h3 fw-bold mb-4">➕ 새 일정 등록</h1>
 
-        <form id="registerForm" th:action="@{/todo/save}" method="post">
+        <!-- 파일 전송을 위해 enctype 추가 -->
+        <form id="registerForm" th:action="@{/todo/save}" method="post" enctype="multipart/form-data">
             <div class="mb-3">
                 <label class="form-label small fw-semibold text-muted">날짜</label>
                 <input type="date" name="schedule_date" class="form-control" required>
@@ -23,6 +24,12 @@
                 <label class="form-label small fw-semibold text-muted">내용</label>
                 <textarea name="content" rows="3" class="form-control" placeholder="상세 내용을 입력하세요"></textarea>
             </div>
+			<div class="mb-3">
+			    <label class="form-label small fw-semibold text-muted">첨부파일</label>
+			    <input type="file" name="files" id="fileInput" class="form-control" multiple>
+			    <!-- multiple: 여러 파일 동시 선택 가능, 개수 제한 없음 -->
+			    <div id="filePreview" class="mt-2 d-flex flex-wrap gap-2"></div>
+			</div>
             <div class="d-flex gap-2 pt-2">
                 <button type="submit" class="btn btn-dark btn-sm">등록 완료</button>
                 <a th:href="@{/todo/list}" class="btn btn-light btn-sm">취소</a>
@@ -33,14 +40,55 @@
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // 제목이 비어있으면 제출 전 포커스만 잡아주는 간단한 jQuery 보조 검증
-        $('#registerForm').on('submit', function (e) {
-            var title = $('input[name="title"]').val().trim();
-            if (!title) {
-                e.preventDefault();
-                $('input[name="title"]').focus();
-            }
-        });
+		// 파일 선택 시 미리보기 표시 (이미지는 썸네일, 그 외는 파일명만)
+		$('#fileInput').on('change', function () {
+		    var preview = $('#filePreview');
+		    preview.empty();
+
+		    var files = this.files;
+		    for (var i = 0; i < files.length; i++) {
+		        var file = files[i];
+		        if (file.type.startsWith('image/')) {
+		            var reader = new FileReader();
+		            reader.onload = (function (fileName) {
+		                return function (e) {
+		                    preview.append(
+		                        '<div class="text-center">' +
+		                        '<img src="' + e.target.result + '" style="width:80px;height:80px;object-fit:cover;border-radius:6px;">' +
+		                        '<div class="small text-muted">' + fileName + '</div>' +
+		                        '</div>'
+		                    );
+		                };
+		            })(file.name);
+		            reader.readAsDataURL(file);
+		        } else {
+		            preview.append(
+		                '<div class="small text-muted align-self-center">📄 ' + file.name + '</div>'
+		            );
+		        }
+		    }
+		});
+
+		// 제목이 비어있으면 제출 전 포커스만 잡아주는 간단한 jQuery 보조 검증
+		$('#registerForm').on('submit', function (e) {
+		    var title = $('input[name="title"]').val().trim();
+		    if (!title) {
+		        e.preventDefault();
+		        $('input[name="title"]').focus();
+		        return;
+		    }
+
+		    // 첨부파일 용량 체크 (서버 설정 max-file-size=10MB와 동일하게 맞춤)
+		    var maxSize = 10 * 1024 * 1024; // 10MB
+		    var files = $('input[name="files"]')[0].files;
+		    for (var i = 0; i < files.length; i++) {
+		        if (files[i].size > maxSize) {
+		            e.preventDefault();
+		            alert('업로드를 할 수 없습니다. (' + files[i].name + '은 10MB를 초과합니다)');
+		            return;
+		        }
+		    }
+		});
     </script>
 </body>
 </html>

@@ -13,6 +13,5 @@ public class Todo {
     private String title;
     private String content;
     private Date schedule_date;
-    private String is_checked;
-    private String file_url;
+    private String status;
 }

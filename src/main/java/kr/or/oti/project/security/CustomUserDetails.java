@@ -1,12 +1,13 @@
 package kr.or.oti.project.security;
 
-import kr.or.oti.project.domain.User;
+import java.util.Collection;
+import java.util.List;
+
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import java.util.Collection;
-import java.util.List;
+import kr.or.oti.project.domain.User;
 
 public class CustomUserDetails implements UserDetails {
 

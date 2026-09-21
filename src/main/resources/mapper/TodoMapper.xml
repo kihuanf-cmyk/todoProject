@@ -12,7 +12,8 @@
 
     <select id="selectTodoById" parameterType="Long" resultType="kr.or.oti.project.domain.Todo">
         SELECT todo_id AS todo_id, user_id AS user_id, title, content,
-               schedule_date AS schedule_date, status AS status
+               schedule_date AS schedule_date, status AS status,
+               file_url AS file_url, file_name AS file_name
         FROM todo
         WHERE todo_id = #{todo_id}
     </select>
@@ -24,7 +25,8 @@
     -->
     <select id="selectTodoList" parameterType="kr.or.oti.project.dto.PageRequestDTO" resultType="kr.or.oti.project.domain.Todo">
         SELECT todo_id AS todo_id, user_id AS user_id, title, content,
-               schedule_date AS schedule_date, status AS status
+               schedule_date AS schedule_date, status AS status,
+               file_url AS file_url, file_name AS file_name
         FROM todo
         WHERE user_id = #{user_id}
         <if test="keyword != null and keyword != ''">
@@ -53,6 +55,20 @@
             content = #{content},
             schedule_date = #{schedule_date},
             status = #{status}
+        WHERE todo_id = #{todo_id}
+    </update>
+
+    <update id="updateTodoFile" parameterType="kr.or.oti.project.domain.Todo">
+        UPDATE todo
+        SET file_url = #{file_url},
+            file_name = #{file_name}
+        WHERE todo_id = #{todo_id}
+    </update>
+
+    <update id="deleteTodoFile" parameterType="Long">
+        UPDATE todo
+        SET file_url = NULL,
+            file_name = NULL
         WHERE todo_id = #{todo_id}
     </update>
 

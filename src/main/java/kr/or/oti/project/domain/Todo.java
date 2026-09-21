@@ -14,4 +14,6 @@ public class Todo {
     private String content;
     private Date schedule_date;
     private String status;
+    private String file_url;
+    private String file_name;
 }

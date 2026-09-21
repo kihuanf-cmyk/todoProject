@@ -21,7 +21,8 @@ public class TodoUpdateRequestDto {
     @Size(max = 50, message = "제목은 최대 50자까지 입력 가능합니다.")
     private String title;
 
-    @Size(max = 2000, message = "내용은 최대 2000자까지 입력 가능합니다.")
+    @NotBlank(message = "내용은 필수 입력 항목입니다.")
+    @Size(max = 500, message = "내용은 최대 500자까지 입력 가능합니다.")
     private String content;
 
     @NotNull(message = "날짜는 필수 입력 항목입니다.")
@@ -30,6 +31,7 @@ public class TodoUpdateRequestDto {
     @Pattern(regexp = "^(TODO|DOING|DONE)$", message = "상태값은 TODO, DOING, DONE 중 하나여야 합니다.")
     private String status;
 
+    private boolean deleteFile = false;
     private int page = 1;
     private String keyword;
 }

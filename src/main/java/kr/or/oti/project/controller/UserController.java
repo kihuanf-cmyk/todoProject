@@ -10,7 +10,9 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import kr.or.oti.project.domain.User;
 import kr.or.oti.project.service.UserService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Controller
 @RequiredArgsConstructor
 @RequestMapping("/user")
@@ -27,12 +29,15 @@ public class UserController {
 	// 회원가입 처리
 	@PostMapping("/join")
 	public String join(User user, RedirectAttributes redirectAttributes) {
+		log.info("회원가입 요청 - user_id={}", user.getUser_id());
 		boolean success = userService.joinUser(user);
 		if (!success) {
+			log.warn("회원가입 실패 - 이미 존재하는 user_id={}", user.getUser_id());
 			redirectAttributes.addFlashAttribute("error", "이미 존재하는 아이디입니다.");
 			return "redirect:/user/join";
 		}
 		redirectAttributes.addFlashAttribute("message", "회원가입이 완료되었습니다. 로그인해주세요.");
+		log.info("회원가입 완료 - user_id={}", user.getUser_id());
 		return "redirect:/user/login";
 	}
 

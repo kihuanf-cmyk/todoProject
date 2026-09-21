@@ -31,114 +31,120 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class TodoController {
 
-	private final TodoService todoService;
+    private final TodoService todoService;
 
-	// 목록 조회 + 검색 기능 통합
-	@GetMapping("/list")
-	public String list(Model model,
-	                   Authentication authentication,
-	                   @RequestParam(required = false) String keyword,
-	                   @RequestParam(defaultValue = "1") int page) {        // ← 페이지 파라미터, 없으면 1페이지
-	    String user_id = authentication.getName();
+    @GetMapping("/list")
+    public String list(Model model,
+                       Authentication authentication,
+                       @RequestParam(required = false) String keyword,
+                       @RequestParam(defaultValue = "1") int page) {
+        String userId = authentication.getName();
 
-	    PageRequestDTO pag = new PageRequestDTO();
-	    pag.setUser_id(user_id);
-	    pag.setKeyword(keyword);
-	    pag.setPage(page);
-	    // amount는 기본값 10 그대로 사용
+        PageRequestDTO pageRequest = new PageRequestDTO();
+        pageRequest.setUser_id(userId);
+        pageRequest.setKeyword(keyword);
+        pageRequest.setPage(Math.max(page, 1));
 
-	    List<TodoResponseDto> todoList = todoService.getTodoList(pag);
-	    int totalCount = todoService.getTotalCount(pag);
-	    PageResponseDTO pageResponseDTO = new PageResponseDTO(pag, totalCount);
+        List<TodoResponseDto> todoList = todoService.getTodoList(pageRequest);
+        int totalCount = todoService.getTotalCount(pageRequest);
+        PageResponseDTO pageResponse = new PageResponseDTO(pageRequest, totalCount);
 
-	    log.debug("목록 조회 - user_id={}, keyword={}, page={}, totalCount={}", user_id, keyword, page, totalCount);
+        log.debug("목록 조회 완료 - user_id={}, keyword={}, page={}, totalCount={}",
+                userId, keyword, pageRequest.getPage(), totalCount);
 
-	    model.addAttribute("todoList", todoList);
-	    model.addAttribute("keyword", keyword);
-	    model.addAttribute("pageResponseDTO", pageResponseDTO);
-	    return "todo/list";
-	}
-	// 등록 폼 조회
-	@GetMapping("/register")
-	public String registerForm() {
-		return "todo/register";
-	}
+        model.addAttribute("todoList", todoList);
+        model.addAttribute("keyword", keyword);
+        model.addAttribute("pageResponseDTO", pageResponse);
+        return "todo/list";
+    }
 
-	// 등록 (@Valid 를 통해 빈 제목, 글자 수 초과 등을 서버 단에서 검증)
-	@PostMapping("/save")
-	public String save(@Valid @ModelAttribute TodoSaveRequestDto dto,
-	                   Authentication authentication,
-	                   @RequestParam(value = "files", required = false) MultipartFile[] files) {
-		String user_id = authentication.getName();
-		log.info("일정 등록 완료 - user_id={}, title={}", user_id, dto.getTitle());
-		todoService.saveTodo(dto, user_id, files);
-		return "redirect:/todo/list";
-	}
-	// 상세 조회 (남의 일정 조회 차단을 위해 user_id 전달)
-	@GetMapping("/{todo_id}")
-	public String detail(@PathVariable Long todo_id,
-	                     @RequestParam(defaultValue = "1") int page,
-	                     @RequestParam(required = false) String keyword,
-	                     Authentication authentication,
-	                     Model model) {
-		String user_id = authentication.getName();
-		log.debug("상세 조회 요청 - todo_id={}, user_id={}", todo_id, user_id);
-		model.addAttribute("todo", todoService.getTodo(todo_id, user_id));
-		model.addAttribute("page", page);
-		model.addAttribute("keyword", keyword);
-		return "todo/read";
-	}
+    @GetMapping("/register")
+    public String registerForm() {
+        log.debug("일정 등록 화면 요청");
+        return "todo/register";
+    }
 
-	// 수정 폼 조회 (남의 일정 수정 폼 접근 차단을 위해 user_id 전달)
-	@GetMapping("/modify/{todo_id}")
-	public String modifyForm(@PathVariable Long todo_id,
-	                         @RequestParam(defaultValue = "1") int page,
-	                         @RequestParam(required = false) String keyword,
-	                         Authentication authentication,
-	                         Model model) {
-		String user_id = authentication.getName();
-		log.debug("수정 폼 조회 - todo_id={}, user_id={}", todo_id, user_id);
-		model.addAttribute("todo", todoService.getTodo(todo_id, user_id));
-		model.addAttribute("page", page);
-		model.addAttribute("keyword", keyword);
-		return "todo/modify";
-	}
+    @PostMapping("/save")
+    public String save(@Valid @ModelAttribute TodoSaveRequestDto dto,
+                       Authentication authentication,
+                       @RequestParam(value = "file", required = false) MultipartFile file) {
+        String userId = authentication.getName();
+        log.debug("일정 등록 요청 - user_id={}, title={}, hasFile={}",
+                userId, dto.getTitle(), hasFile(file));
 
-	// 수정 (@Valid 유효성 검증 및 남의 일정 수정 방어)
-	@PostMapping("/update")
-	public String update(@Valid @ModelAttribute TodoUpdateRequestDto dto,
-	                     Authentication authentication,
-	                     RedirectAttributes redirectAttributes,
-	                     @RequestParam(value = "files", required = false) MultipartFile[] files) {
-		String user_id = authentication.getName();
-		todoService.updateTodo(dto, user_id, files);
-		log.info("일정 수정 완료 - user_id={}, todo_id={}", user_id, dto.getTodo_id()); // ← 추가 (필드명은 실제 DTO 확인)
-		redirectAttributes.addAttribute("page", dto.getPage());
-		if (dto.getKeyword() != null && !dto.getKeyword().isEmpty()) {
-			redirectAttributes.addAttribute("keyword", dto.getKeyword());
-		}
-		return "redirect:/todo/list";
-	}
+        todoService.saveTodo(dto, userId, file);
 
-	// 삭제 (남의 일정 삭제 차단을 위해 user_id 전달)
-	@PostMapping("/delete/{todo_id}")
-	public String delete(@PathVariable Long todo_id, Authentication authentication) {
-		String user_id = authentication.getName();
-		log.debug("삭제 요청 - todo_id={}, user_id={}", todo_id, user_id);
-		todoService.deleteTodo(todo_id, user_id);
-		return "redirect:/todo/list";
-	}
-	
-	// 첨부파일 개별 삭제 - modify.html에서 파일별 삭제 버튼 클릭 시 호출
-	@PostMapping("/file/delete/{file_id}")
-	public String deleteFile(@PathVariable Long file_id,
-	                         Authentication authentication,
-	                         @RequestParam Long todo_id,
-	                         @RequestParam(required = false) Integer page,
-	                         @RequestParam(required = false) String keyword) {
-		String user_id = authentication.getName();
-		todoService.deleteTodoFile(file_id, user_id);
-		return "redirect:/todo/modify/" + todo_id + "?page=" + page + "&keyword=" + (keyword != null ? keyword : "");
-	}
-	
+        log.info("일정 등록 완료 - user_id={}, title={}, hasFile={}",
+                userId, dto.getTitle(), hasFile(file));
+        return "redirect:/todo/list";
+    }
+
+    @GetMapping("/{todo_id}")
+    public String detail(@PathVariable Long todo_id,
+                          @RequestParam(defaultValue = "1") int page,
+                          @RequestParam(required = false) String keyword,
+                          Authentication authentication,
+                          Model model) {
+        String userId = authentication.getName();
+        log.debug("상세 조회 요청 - todo_id={}, user_id={}, page={}, keyword={}",
+                todo_id, userId, page, keyword);
+
+        model.addAttribute("todo", todoService.getTodo(todo_id, userId));
+        model.addAttribute("page", page);
+        model.addAttribute("keyword", keyword);
+        return "todo/read";
+    }
+
+    @GetMapping("/modify/{todo_id}")
+    public String modifyForm(@PathVariable Long todo_id,
+                              @RequestParam(defaultValue = "1") int page,
+                              @RequestParam(required = false) String keyword,
+                              Authentication authentication,
+                              Model model) {
+        String userId = authentication.getName();
+        log.debug("수정 화면 요청 - todo_id={}, user_id={}, page={}, keyword={}",
+                todo_id, userId, page, keyword);
+
+        model.addAttribute("todo", todoService.getTodo(todo_id, userId));
+        model.addAttribute("page", page);
+        model.addAttribute("keyword", keyword);
+        return "todo/modify";
+    }
+
+    @PostMapping("/update")
+    public String update(@Valid @ModelAttribute TodoUpdateRequestDto dto,
+                          Authentication authentication,
+                          RedirectAttributes redirectAttributes,
+                          @RequestParam(value = "file", required = false) MultipartFile file) {
+        String userId = authentication.getName();
+        log.debug("일정 수정 요청 - user_id={}, todo_id={}, replaceFile={}, deleteFile={}",
+                userId, dto.getTodo_id(), hasFile(file), dto.isDeleteFile());
+
+        todoService.updateTodo(dto, userId, file);
+
+        log.info("일정 수정 완료 - user_id={}, todo_id={}, replaceFile={}, deleteFile={}",
+                userId, dto.getTodo_id(), hasFile(file), dto.isDeleteFile());
+
+        redirectAttributes.addAttribute("page", dto.getPage());
+        if (dto.getKeyword() != null && !dto.getKeyword().isEmpty()) {
+            redirectAttributes.addAttribute("keyword", dto.getKeyword());
+        }
+        return "redirect:/todo/list";
+    }
+
+    @PostMapping("/delete/{todo_id}")
+    public String delete(@PathVariable Long todo_id, Authentication authentication) {
+        String userId = authentication.getName();
+        log.debug("일정 삭제 요청 - todo_id={}, user_id={}", todo_id, userId);
+
+        todoService.deleteTodo(todo_id, userId);
+
+        log.info("일정 삭제 완료 - user_id={}, todo_id={}", userId, todo_id);
+        return "redirect:/todo/list";
+    }
+
+    private boolean hasFile(MultipartFile file) {
+        return file != null && !file.isEmpty();
+    }
 }
+

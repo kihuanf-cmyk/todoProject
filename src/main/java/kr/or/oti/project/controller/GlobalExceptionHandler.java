@@ -5,6 +5,8 @@ import org.springframework.ui.Model;
 import org.springframework.validation.BindException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -16,6 +18,15 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @ControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public String handleMaxUploadSizeExceeded(MaxUploadSizeExceededException e, Model model) {
+        log.warn("첨부파일 용량 초과 - message={}", e.getMessage());
+        model.addAttribute("errorCode", "400");
+        model.addAttribute("errorTitle", "첨부파일 용량이 너무 큽니다");
+        model.addAttribute("errorMessage", "파일 하나는 10MB 이하, 전체 요청은 30MB 이하로 업로드해 주세요.");
+        return "error/error";
+    }
 
     /**
      * 1. 입력값 유효성 검증 실패 처리 (빈 제목, 글자 수 초과, 날짜 누락 등)
@@ -37,7 +48,19 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * 2. 권한 거부 예외 처리 (남의 일정 조회/수정/삭제 시도 등)
+     * 2. 요청 파라미터 타입 불일치 처리 (예: /todo/abc 로 숫자가 와야 하는 곳에 문자 입력 시)
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public String handleTypeMismatch(MethodArgumentTypeMismatchException e, Model model) {
+        log.warn("요청 파라미터 타입 불일치 - name={}, value={}", e.getName(), e.getValue());
+        model.addAttribute("errorCode", "400");
+        model.addAttribute("errorTitle", "잘못된 요청 형식입니다");
+        model.addAttribute("errorMessage", "요청하신 값의 형식이 올바르지 않습니다. (입력값: " + e.getValue() + ")");
+        return "error/error";
+    }
+
+    /**
+     * 3. 권한 거부 예외 처리 (남의 일정 조회/수정/삭제 시도 등)
      *    Service 에서 소유권 불일치 시 throw new AccessDeniedException(...) 을 던질 때 처리합니다.
      */
     @ExceptionHandler(AccessDeniedException.class)
@@ -50,7 +73,7 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * 3. 존재하지 않는 일정 요청, 수정/삭제 대상 없음 등
+     * 4. 존재하지 않는 일정 요청, 수정/삭제 대상 없음 등
      *    Service 에서 throw new IllegalArgumentException(...) 으로 명확하게 던진 경우를 처리
      */
     @ExceptionHandler(IllegalArgumentException.class)
@@ -63,7 +86,7 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * 4. DB 연결 오류, 예상하지 못한 모든 서버 오류
+     * 5. DB 연결 오류, 예상하지 못한 모든 서버 오류
      *    가장 넓은 범위의 예외로 앞에서 처리되지 않은 모든 오류를 여기서 처리
      */
     @ExceptionHandler(Exception.class)

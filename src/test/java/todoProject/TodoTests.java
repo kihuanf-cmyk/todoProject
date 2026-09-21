@@ -9,191 +9,211 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.sql.Date;
-import java.util.Collections;
+import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.multipart.MultipartFile;
-import org.junit.jupiter.api.extension.ExtendWith;
 
 import kr.or.oti.project.domain.Todo;
-import kr.or.oti.project.domain.TodoFile;
+import kr.or.oti.project.dto.PageRequestDTO;
 import kr.or.oti.project.dto.TodoResponseDto;
 import kr.or.oti.project.dto.TodoSaveRequestDto;
-import kr.or.oti.project.mapper.TodoFileMapper;
+import kr.or.oti.project.dto.TodoUpdateRequestDto;
 import kr.or.oti.project.mapper.TodoMapper;
 import kr.or.oti.project.service.impl.TodoServiceImpl;
 import kr.or.oti.project.util.FileStorageUtil;
 
-// 테스트 작성일: 2026-09-17
-// 테스트 순서: 도메인 -> 서비스 -> DB/매퍼 -> 컨트롤러 -> DTO
 @ExtendWith(MockitoExtension.class)
 class TodoTests {
 
-	@Nested
-	@DisplayName("Todo 도메인 단위 테스트")
-	class Todo도메인테스트 {
+    @Mock
+    private TodoMapper todoMapper;
 
-		@Test
-		@DisplayName("새 Todo 객체는 필드에 입력한 값을 그대로 보관한다")
-		void 새Todo객체는입력한값을그대로보관한다() {
-			Todo todo = new Todo();
-			Date scheduleDate = Date.valueOf("2026-09-17");
+    @Mock
+    private FileStorageUtil fileStorageUtil;
 
-			todo.setTodo_id(1L);
-			todo.setUser_id("user01");
-			todo.setTitle("병원 예약");
-			todo.setContent("오후 2시에 방문");
-			todo.setSchedule_date(scheduleDate);
-			todo.setStatus("TODO");
+    @InjectMocks
+    private TodoServiceImpl todoService;
 
-			assertThat(todo.getTodo_id()).isEqualTo(1L);
-			assertThat(todo.getUser_id()).isEqualTo("user01");
-			assertThat(todo.getTitle()).isEqualTo("병원 예약");
-			assertThat(todo.getContent()).isEqualTo("오후 2시에 방문");
-			assertThat(todo.getSchedule_date()).isEqualTo(scheduleDate);
-			assertThat(todo.getStatus()).isEqualTo("TODO");
-		}
+    @Test
+    @DisplayName("등록은 기본 정보 저장 후 첨부파일이 있으면 파일 컬럼을 갱신한다")
+    void 등록은기본정보저장후첨부파일컬럼을갱신한다() {
+        TodoSaveRequestDto request = new TodoSaveRequestDto();
+        request.setTitle("회의");
+        request.setContent("회의 내용");
+        request.setSchedule_date(Date.valueOf("2026-09-21"));
 
-		@Test
-		@DisplayName("TodoResponseDto는 Todo의 화면 표시용 값을 옮겨 담는다")
-		void TodoResponseDto는Todo값을옮겨담는다() {
-			Todo todo = new Todo();
-			todo.setTodo_id(2L);
-			todo.setTitle("운동");
-			todo.setContent("30분 걷기");
-			todo.setSchedule_date(Date.valueOf("2026-09-18"));
-			todo.setStatus("DONE");
+        MultipartFile file = mock(MultipartFile.class);
+        when(file.isEmpty()).thenReturn(false);
+        when(file.getOriginalFilename()).thenReturn("plan.pdf");
+        when(fileStorageUtil.storeFile(file)).thenReturn("uuid_plan.pdf");
+        when(todoMapper.updateTodoFile(any(Todo.class))).thenReturn(1);
 
-			TodoResponseDto response = TodoResponseDto.from(todo);
+        todoService.saveTodo(request, "user01", file);
 
-			assertThat(response.getTodo_id()).isEqualTo(2L);
-			assertThat(response.getTitle()).isEqualTo("운동");
-			assertThat(response.getContent()).isEqualTo("30분 걷기");
-			assertThat(response.getSchedule_date()).isEqualTo(todo.getSchedule_date());
-			assertThat(response.getStatus()).isEqualTo("DONE");
-		}
-	}
+        verify(todoMapper).insertTodo(any(Todo.class));
+        verify(todoMapper).updateTodoFile(any(Todo.class));
+    }
 
-	@Nested
-	@DisplayName("Todo 서비스 통합 테스트")
-	@ExtendWith(MockitoExtension.class)
-	class Todo서비스테스트 {
+    @Test
+    @DisplayName("새 파일로 수정하면 기존 파일을 삭제하고 파일 정보를 교체한다")
+    void 새파일로수정하면기존파일을삭제하고파일정보를교체한다() {
+        Todo existing = ownedTodo("old.pdf");
+        when(todoMapper.selectTodoById(1L)).thenReturn(existing);
+        when(todoMapper.updateTodo(any(Todo.class))).thenReturn(1);
+        when(todoMapper.updateTodoFile(any(Todo.class))).thenReturn(1);
 
-		@Mock
-		private TodoMapper todoMapper;
+        MultipartFile file = mock(MultipartFile.class);
+        when(file.isEmpty()).thenReturn(false);
+        when(file.getOriginalFilename()).thenReturn("new.pdf");
+        when(fileStorageUtil.storeFile(file)).thenReturn("new.pdf");
 
-		@Mock
-		private TodoFileMapper todoFileMapper;
+        todoService.updateTodo(updateRequest(false), "user01", file);
 
-		@Mock
-		private FileStorageUtil fileStorageUtil;
-		
-		@InjectMocks
-		private TodoServiceImpl todoService;
+        verify(todoMapper).updateTodoFile(any(Todo.class));
+        verify(fileStorageUtil).deleteFile("old.pdf");
+    }
 
-		@Test
-		@DisplayName("Todo를 등록하면 로그인한 사용자의 일정으로 저장하고 미완료 상태를 기본 설정한다")
-		void Todo를등록하면사용자와미완료상태를저장한다() {
-			TodoSaveRequestDto request = new TodoSaveRequestDto();
-			request.setTitle("공부");
-			request.setContent("테스트 코드 읽기");
-			request.setSchedule_date(Date.valueOf("2026-09-17"));
+    @Test
+    @DisplayName("삭제 표시 후 저장하면 파일 컬럼과 물리 파일을 삭제한다")
+    void 삭제표시후저장하면파일컬럼과물리파일을삭제한다() {
+        when(todoMapper.selectTodoById(1L)).thenReturn(ownedTodo("file.pdf"));
+        when(todoMapper.updateTodo(any(Todo.class))).thenReturn(1);
+        when(todoMapper.deleteTodoFile(1L)).thenReturn(1);
 
-			todoService.saveTodo(request, "user01", null);
+        todoService.updateTodo(updateRequest(true), "user01", null);
 
-			ArgumentCaptor<Todo> savedTodo = ArgumentCaptor.forClass(Todo.class);
-			verify(todoMapper).insertTodo(savedTodo.capture());
-			assertThat(savedTodo.getValue().getUser_id()).isEqualTo("user01");
-			assertThat(savedTodo.getValue().getTitle()).isEqualTo("공부");
-			assertThat(savedTodo.getValue().getContent()).isEqualTo("테스트 코드 읽기");
-			assertThat(savedTodo.getValue().getSchedule_date()).isEqualTo(request.getSchedule_date());
-			assertThat(savedTodo.getValue().getStatus()).isEqualTo("TODO");
-		}
+        verify(todoMapper).deleteTodoFile(1L);
+        verify(fileStorageUtil).deleteFile("file.pdf");
+    }
 
-		@Test
-		@DisplayName("존재하지 않는 Todo를 조회하면 안내 메시지와 함께 예외가 발생한다")
-		void 존재하지않는Todo를조회하면예외가발생한다() {
-			when(todoMapper.selectTodoById(99L)).thenReturn(null);
+    @Test
+    @DisplayName("파일 변경이 없으면 파일 관련 Mapper를 호출하지 않는다")
+    void 파일변경이없으면파일관련Mapper를호출하지않는다() {
+        when(todoMapper.selectTodoById(1L)).thenReturn(ownedTodo("file.pdf"));
+        when(todoMapper.updateTodo(any(Todo.class))).thenReturn(1);
 
-			assertThatThrownBy(() -> todoService.getTodo(99L, "user01"))
-					.isInstanceOf(IllegalArgumentException.class)
-					.hasMessage("존재하지 않는 일정입니다.");
-		}
+        todoService.updateTodo(updateRequest(false), "user01", null);
 
-		@Test
-		@DisplayName("다른 사용자의 Todo를 조회하면 접근을 거부하고 추가 조회를 하지 않는다")
-		void 다른사용자의Todo를조회하면접근을거부한다() {
-			Todo todo = new Todo();
-			todo.setTodo_id(1L);
-			todo.setUser_id("owner");
-			when(todoMapper.selectTodoById(1L)).thenReturn(todo);
+        verify(todoMapper, never()).updateTodoFile(any(Todo.class));
+        verify(todoMapper, never()).deleteTodoFile(any(Long.class));
+    }
 
-			assertThatThrownBy(() -> todoService.getTodo(1L, "visitor"))
-					.isInstanceOf(org.springframework.security.access.AccessDeniedException.class)
-					.hasMessage("해당 일정을 조회할 권한이 없습니다.");
-			verify(todoMapper, never()).updateTodo(any(Todo.class));
-		}
+    @Test
+    @DisplayName("다른 사용자의 Todo 상세 조회를 시도하면 AccessDeniedException을 던진다")
+    void 다른사용자의Todo접근은거부한다() {
+        Todo todo = new Todo();
+        todo.setUser_id("owner");
+        when(todoMapper.selectTodoById(1L)).thenReturn(todo);
 
-		@Test
-		@DisplayName("Todo 목록이 비어 있으면 빈 화면 목록을 반환한다")
-		void Todo목록이비어있으면빈목록을반환한다() {
-			kr.or.oti.project.dto.PageRequestDTO pageRequest = new kr.or.oti.project.dto.PageRequestDTO();
-			when(todoMapper.selectTodoList(pageRequest)).thenReturn(Collections.emptyList());
+        assertThatThrownBy(() -> todoService.getTodo(1L, "visitor"))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessageContaining("해당 일정에 접근할 권한이 없습니다.");
+    }
 
-			assertThat(todoService.getTodoList(pageRequest)).isEmpty();
-		}
-		
-		@Test
-		@DisplayName("Todo를 등록할 때 첨부파일이 있으면 저장 후 TODO_FILE에 기록한다")
-		void Todo등록시첨부파일이있으면저장하고기록한다() {
-			TodoSaveRequestDto request = new TodoSaveRequestDto();
-			request.setTitle("공부");
-			request.setContent("테스트 코드 읽기");
-			request.setSchedule_date(Date.valueOf("2026-09-17"));
+    @Test
+    @DisplayName("존재하지 않는 일정 번호 조회 시 IllegalArgumentException을 던진다")
+    void 존재하지않는_일정조회시_IllegalArgumentException이_발생한다() {
+        when(todoMapper.selectTodoById(999L)).thenReturn(null);
 
-			MultipartFile file1 = mock(MultipartFile.class);
-			when(file1.isEmpty()).thenReturn(false);
-			when(file1.getOriginalFilename()).thenReturn("자료.pdf");
-			when(fileStorageUtil.storeFile(file1)).thenReturn("uuid1_자료.pdf");
+        assertThatThrownBy(() -> todoService.getTodo(999L, "user01"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("존재하지 않는 일정입니다.");
+    }
 
-			MultipartFile[] files = { file1 };
+    @Test
+    @DisplayName("본인의 일정인 경우 상세 조회가 정상 작동한다")
+    void 본인일정_조회시_정상적으로_DTO를_반환한다() {
+        Todo todo = ownedTodo("file.pdf");
+        todo.setTitle("테스트 제목");
+        when(todoMapper.selectTodoById(1L)).thenReturn(todo);
 
-			todoService.saveTodo(request, "user01", files);
+        TodoResponseDto result = todoService.getTodo(1L, "user01");
 
-			// 실제 저장 로직(디스크 쓰기)이 호출됐는지
-			verify(fileStorageUtil).storeFile(file1);
+        assertThat(result.getTodo_id()).isEqualTo(1L);
+        assertThat(result.getTitle()).isEqualTo("테스트 제목");
+    }
 
-			// TODO_FILE에 올바른 값으로 insert 요청했는지
-			ArgumentCaptor<TodoFile> savedFile = ArgumentCaptor.forClass(TodoFile.class);
-			verify(todoFileMapper).insertTodoFile(savedFile.capture());
-			assertThat(savedFile.getValue().getFile_url()).isEqualTo("uuid1_자료.pdf");
-			assertThat(savedFile.getValue().getFile_name()).isEqualTo("자료.pdf");
-		}
+    @Test
+    @DisplayName("본인의 일정을 삭제할 경우 DB 삭제 및 첨부파일을 원자적으로 삭제한다")
+    void 본인일정_삭제시_DB와파일을_삭제한다() {
+        Todo todo = ownedTodo("sample.pdf");
+        when(todoMapper.selectTodoById(1L)).thenReturn(todo);
+        when(todoMapper.deleteTodo(1L)).thenReturn(1);
 
-		@Test
-		@DisplayName("빈 파일(선택 안 한 input)이 섞여 있으면 해당 파일은 저장하지 않는다")
-		void 빈파일은저장하지않는다() {
-			TodoSaveRequestDto request = new TodoSaveRequestDto();
-			request.setTitle("공부");
-			request.setContent("테스트 코드 읽기");
-			request.setSchedule_date(Date.valueOf("2026-09-17"));
+        todoService.deleteTodo(1L, "user01");
 
-			MultipartFile emptyFile = mock(MultipartFile.class);
-			when(emptyFile.isEmpty()).thenReturn(true);
+        verify(todoMapper).deleteTodo(1L);
+        verify(fileStorageUtil).deleteFile("sample.pdf");
+    }
 
-			MultipartFile[] files = { emptyFile };
+    @Test
+    @DisplayName("다른 사용자의 일정을 삭제 시도할 경우 AccessDeniedException을 던진다")
+    void 다른사용자_일정삭제시_AccessDeniedException이_발생한다() {
+        Todo todo = ownedTodo("sample.pdf");
+        when(todoMapper.selectTodoById(1L)).thenReturn(todo);
 
-			todoService.saveTodo(request, "user01", files);
+        assertThatThrownBy(() -> todoService.deleteTodo(1L, "otherUser"))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessageContaining("해당 일정에 접근할 권한이 없습니다.");
+    }
 
-			// isEmpty()가 true인 파일은 storeFile도, insertTodoFile도 호출되면 안 됨
-			verify(fileStorageUtil, never()).storeFile(any(MultipartFile.class));
-			verify(todoFileMapper, never()).insertTodoFile(any(TodoFile.class));
-		}
-	}
+    @Test
+    @DisplayName("페이지 및 검색 조건으로 목록 조회 시 Mapper를 올바르게 호출한다")
+    void 페이징조회시_Mapper를_호출하고_DTO목록을_반환한다() {
+        PageRequestDTO pageReq = new PageRequestDTO();
+        pageReq.setUser_id("user01");
+        pageReq.setPage(1);
+        pageReq.setAmount(10);
+        pageReq.setKeyword("회의");
+
+        Todo todo = ownedTodo(null);
+        todo.setTitle("회의 준비");
+        when(todoMapper.selectTodoList(pageReq)).thenReturn(List.of(todo));
+
+        List<TodoResponseDto> result = todoService.getTodoList(pageReq);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getTitle()).isEqualTo("회의 준비");
+        verify(todoMapper).selectTodoList(pageReq);
+    }
+
+    @Test
+    @DisplayName("전체 일정 개수 조회 시 getTotalCount Mapper를 호출한다")
+    void 전체개수조회시_getTotalCount_Mapper를_호출한다() {
+        PageRequestDTO pageReq = new PageRequestDTO();
+        pageReq.setUser_id("user01");
+
+        when(todoMapper.getTotalCount(pageReq)).thenReturn(15);
+
+        int count = todoService.getTotalCount(pageReq);
+
+        assertThat(count).isEqualTo(15);
+        verify(todoMapper).getTotalCount(pageReq);
+    }
+
+    private Todo ownedTodo(String fileUrl) {
+        Todo todo = new Todo();
+        todo.setTodo_id(1L);
+        todo.setUser_id("user01");
+        todo.setFile_url(fileUrl);
+        return todo;
+    }
+
+    private TodoUpdateRequestDto updateRequest(boolean deleteFile) {
+        TodoUpdateRequestDto request = new TodoUpdateRequestDto();
+        request.setTodo_id(1L);
+        request.setTitle("수정");
+        request.setContent("수정 내용");
+        request.setSchedule_date(Date.valueOf("2026-09-21"));
+        request.setStatus("TODO");
+        request.setDeleteFile(deleteFile);
+        return request;
+    }
 }

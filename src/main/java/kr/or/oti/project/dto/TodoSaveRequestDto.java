@@ -21,7 +21,8 @@ public class TodoSaveRequestDto {
     private String title;
 
     // 내용 글자 수 제한 (DB 컬럼: NVARCHAR2(2000))
-    @Size(max = 2000, message = "내용은 최대 2000자까지 입력 가능합니다.")
+    @NotBlank(message = "내용은 필수 입력 항목입니다.")
+    @Size(max = 500, message = "내용은 최대 500자까지 입력 가능합니다.")
     private String content;
 
     // 날짜 필수 검증

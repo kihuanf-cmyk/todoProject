@@ -40,6 +40,7 @@ public class FileController {
             return ResponseEntity.internalServerError().build();
         }
 
+        log.info("파일 응답 완료 - fileName={}, size={}bytes", fileName, file.length());
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + fileName + "\"")

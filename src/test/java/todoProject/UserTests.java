@@ -17,7 +17,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import kr.or.oti.project.domain.User;
 import kr.or.oti.project.domain.UserRole;
 import kr.or.oti.project.mapper.UserMapper;
-import kr.or.oti.project.security.CustomOAuth2UserServiceImpl;
+import kr.or.oti.project.security.CustomOAuth2UserService;
 import kr.or.oti.project.service.impl.UserServiceImpl;
 
 // 테스트 작성일: 2026-09-17
@@ -112,7 +112,7 @@ class UserTests {
 	    private PasswordEncoder passwordEncoder;
 
 	    @InjectMocks
-	    private CustomOAuth2UserServiceImpl customOAuth2UserServiceImpl;
+	    private CustomOAuth2UserService customOAuth2UserServiceImpl;
 
 	    @Test
 	    @DisplayName("처음 로그인하는 이메일이면 신규 회원으로 자동 등록한다")

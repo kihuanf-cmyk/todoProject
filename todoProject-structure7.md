@@ -45,11 +45,7 @@ spring.security.oauth2.client.registration.google.scope=email,profile
 
 ## 4. 클래스 구조
 
-### CustomOAuth2UserService (인터페이스)
-`OAuth2UserService<OAuth2UserRequest, OAuth2User>`를 상속하는 마커 인터페이스.
-기존 프로젝트의 Service/ServiceImpl 분리 패턴을 그대로 따름.
-
-### CustomOAuth2UserServiceImpl (구현체)
+### CustomOAuth2UserService (구현체)
 - `DefaultOAuth2UserService`를 상속해 구글에서 사용자 정보를 가져오는 기본 로직 재사용
 - `loadUser()`에서 이메일 기준으로 `TODO_USER` 조회 → 없으면 자동 회원가입(`resolveUser()`로 분리)
 - 신규 가입 시 `pwd`는 `UUID.randomUUID()`를 `PasswordEncoder`로 암호화해 저장(실제 로그인에는 사용되지 않음)
@@ -115,8 +111,3 @@ spring.security.oauth2.client.registration.google.scope=email,profile
   호출되지 않는지 검증(`verify(userMapper, never()).insertUser(...)`)
 
 ---
-
-## 7. 남은 작업 / 다음 단계
-
-- 로그인 방식 통합 고민(폼 로그인 vs 구글 로그인 구분을 위한 `LOGIN_TYPE` 컬럼 추가 여부) — 미결정
-- Google Calendar API 연동(scope 확장, 이벤트 조회, Calendar 화면 렌더링) — 진행 예정

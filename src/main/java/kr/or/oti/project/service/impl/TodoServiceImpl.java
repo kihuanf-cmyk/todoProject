@@ -1,6 +1,7 @@
 package kr.or.oti.project.service.impl;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.security.access.AccessDeniedException;
@@ -12,6 +13,7 @@ import kr.or.oti.project.domain.Todo;
 import kr.or.oti.project.dto.PageRequestDTO;
 import kr.or.oti.project.dto.TodoResponseDto;
 import kr.or.oti.project.dto.TodoSaveRequestDto;
+import kr.or.oti.project.dto.TodoStatsDTO;
 import kr.or.oti.project.dto.TodoUpdateRequestDto;
 import kr.or.oti.project.mapper.TodoMapper;
 import kr.or.oti.project.service.TodoService;
@@ -136,7 +138,59 @@ public class TodoServiceImpl implements TodoService {
         }
         return todo;
     }
+    
+    @Override
+    public TodoStatsDTO getTodoStats(Long user_no) {
 
+        // 1. Mapper 호출 - status별 개수를 담은 List<Map> 조회
+        List<Map<String, Object>> rows = todoMapper.selectStatusCountByUser(user_no);
+        log.debug("통계 집계 조회 - user_no={}, rows={}", user_no, rows);
+
+        // 2. 값을 채울 그릇(DTO) 준비
+        TodoStatsDTO stats = new TodoStatsDTO();
+        long todo_count = 0;
+        long doing_count = 0;
+        long done_count = 0;
+
+        // 3. 행을 순회하며 status에 맞는 변수에 개수 누적
+        for (Map<String, Object> row : rows) {
+            String status = (String) row.get("STATUS");
+            long cnt = ((Number) row.get("CNT")).longValue();
+
+            switch (status) {
+                case "TODO":
+                    todo_count = cnt;
+                    break;
+                case "DOING":
+                    doing_count = cnt;
+                    break;
+                case "DONE":
+                    done_count = cnt;
+                    break;
+            }
+        }
+
+        // 4. 전체 개수 = 세 상태 합
+        long total_count = todo_count + doing_count + done_count;
+
+        // 5. 완료율 계산 (0으로 나누기 방지)
+        double completion_rate = (total_count == 0)
+                ? 0.0
+                : (done_count * 100.0 / total_count);
+
+        // 6. DTO에 setter로 값 채우기
+        stats.setTotal_count(total_count);
+        stats.setTodo_count(todo_count);
+        stats.setDoing_count(doing_count);
+        stats.setDone_count(done_count);
+        stats.setCompletion_rate(completion_rate);
+        
+        log.debug("통계 계산 완료 - user_no={}, total={}, todo={}, doing={}, done={}, completionRate={}", // 추가: 계산 결과 로그
+                user_no, total_count, todo_count, doing_count, done_count, completion_rate);
+
+
+        return stats;
+    }
     private void saveAndUpdateFile(Todo todo, MultipartFile file, Long user_no) {
         String savedName = null;
         try {

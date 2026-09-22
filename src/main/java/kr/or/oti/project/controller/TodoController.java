@@ -2,6 +2,7 @@ package kr.or.oti.project.controller;
 
 import java.util.List;
 
+import javax.servlet.http.HttpSession;
 import javax.validation.Valid;
 
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -20,6 +21,7 @@ import kr.or.oti.project.dto.PageRequestDTO;
 import kr.or.oti.project.dto.PageResponseDTO;
 import kr.or.oti.project.dto.TodoResponseDto;
 import kr.or.oti.project.dto.TodoSaveRequestDto;
+import kr.or.oti.project.dto.TodoStatsDTO;
 import kr.or.oti.project.dto.TodoUpdateRequestDto;
 import kr.or.oti.project.security.CustomUserDetails;
 import kr.or.oti.project.service.TodoService;
@@ -148,5 +150,22 @@ public class TodoController {
 
     private boolean hasFile(MultipartFile file) {
         return file != null && !file.isEmpty();
+    }
+    
+    @GetMapping("/stats")
+    public String getTodoStats(@AuthenticationPrincipal CustomUserDetails userDetails, Model model) {
+
+        // 1. 로그인한 사용자의 user_no를 세션에서 꺼냄
+        Long user_no = (Long) userDetails.getUser_no();
+
+        // 2. Service 호출 - user_no를 조건으로 통계 DTO를 받아옴
+        TodoStatsDTO stats = todoService.getTodoStats(user_no);
+
+        // 3. View로 넘길 모델에 담기
+        model.addAttribute("stats", stats);
+        log.debug("통계 조회 완료 - user_no={}, total={}, completionRate={}",
+                user_no, stats.getTotal_count(), stats.getCompletion_rate());
+
+        return "todo/stats"; // stats.html로 이동
     }
 }

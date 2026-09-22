@@ -1,8 +1,10 @@
 package kr.or.oti.project.mapper;
 
 import java.util.List;
+import java.util.Map;
 
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 import kr.or.oti.project.domain.Todo;
 import kr.or.oti.project.dto.PageRequestDTO;
@@ -19,4 +21,6 @@ public interface TodoMapper {
 
     // @Param 명시 : XML에서 #{user_no}, #{keyword} 로 정확히 매핑되도록 파라미터 이름을 고정
     int getTotalCount(PageRequestDTO pag);
+    
+    List<Map<String, Object>> selectStatusCountByUser(@Param("user_no") Long user_no);
 }

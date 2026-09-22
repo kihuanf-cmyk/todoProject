@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 
 import java.sql.Date;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -24,6 +25,7 @@ import kr.or.oti.project.domain.Todo;
 import kr.or.oti.project.dto.PageRequestDTO;
 import kr.or.oti.project.dto.TodoResponseDto;
 import kr.or.oti.project.dto.TodoSaveRequestDto;
+import kr.or.oti.project.dto.TodoStatsDTO;
 import kr.or.oti.project.dto.TodoUpdateRequestDto;
 import kr.or.oti.project.mapper.TodoMapper;
 import kr.or.oti.project.service.impl.TodoServiceImpl;
@@ -196,6 +198,38 @@ class TodoTests {
 
         assertThat(count).isEqualTo(15);
         verify(todoMapper).getTotalCount(pageReq);
+    }
+
+    @Test
+    @DisplayName("상태별 개수를 집계해 완료율을 정확히 계산한다")
+    void 상태별개수를집계해완료율을계산한다() {
+        // TODO 3건, DOING 1건, DONE 6건 -> 전체 10건 중 완료율 60%
+        List<Map<String, Object>> rows = List.of(
+                Map.of("STATUS", "TODO", "CNT", 3L),
+                Map.of("STATUS", "DOING", "CNT", 1L),
+                Map.of("STATUS", "DONE", "CNT", 6L)
+        );
+        when(todoMapper.selectStatusCountByUser(1L)).thenReturn(rows);
+
+        TodoStatsDTO stats = todoService.getTodoStats(1L);
+
+        assertThat(stats.getTotal_count()).isEqualTo(10L);
+        assertThat(stats.getTodo_count()).isEqualTo(3L);
+        assertThat(stats.getDoing_count()).isEqualTo(1L);
+        assertThat(stats.getDone_count()).isEqualTo(6L);
+        assertThat(stats.getCompletion_rate()).isEqualTo(60.0);
+        verify(todoMapper).selectStatusCountByUser(1L);
+    }
+
+    @Test
+    @DisplayName("등록된 일정이 없으면 0으로 나누지 않고 완료율을 0으로 반환한다")
+    void 일정이없으면완료율을0으로반환한다() {
+        when(todoMapper.selectStatusCountByUser(1L)).thenReturn(List.of());
+
+        TodoStatsDTO stats = todoService.getTodoStats(1L);
+
+        assertThat(stats.getTotal_count()).isEqualTo(0L);
+        assertThat(stats.getCompletion_rate()).isEqualTo(0.0);
     }
 
     private Todo ownedTodo(String fileUrl) {

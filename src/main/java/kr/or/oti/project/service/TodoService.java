@@ -7,6 +7,7 @@ import org.springframework.web.multipart.MultipartFile;
 import kr.or.oti.project.dto.PageRequestDTO;
 import kr.or.oti.project.dto.TodoResponseDto;
 import kr.or.oti.project.dto.TodoSaveRequestDto;
+import kr.or.oti.project.dto.TodoStatsDTO;
 import kr.or.oti.project.dto.TodoUpdateRequestDto;
 
 public interface TodoService {
@@ -24,4 +25,7 @@ public interface TodoService {
 
     // 검색 및 페이징용 총 개수
     int getTotalCount(PageRequestDTO pag);
+    
+    //상태별 통계(전체/시작전/진행중/완료/완료율) 조회
+    TodoStatsDTO getTodoStats(Long user_no);
 }

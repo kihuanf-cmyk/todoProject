@@ -76,5 +76,12 @@
         DELETE FROM todo
         WHERE todo_id = #{todo_id}
     </delete>
+    
+    <select id="selectStatusCountByUser" parameterType="long" resultType="map">
+    	SELECT status, COUNT(*) AS CNT
+    	FROM todo
+    	WHERE user_no = #{user_no}
+    	GROUP BY status
+    </select>
 
 </mapper>

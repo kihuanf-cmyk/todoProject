@@ -28,4 +28,7 @@ public interface TodoService {
     
     //상태별 통계(전체/시작전/진행중/완료/완료율) 조회
     TodoStatsDTO getTodoStats(Long user_no);
+    
+    // TodoService 인터페이스에 추가
+    List<TodoResponseDto> getAllTodoByUser(Long user_no);
 }

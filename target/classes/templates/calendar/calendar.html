@@ -1,0 +1,46 @@
+<!-- templates/calendar/calendar.html -->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>캘린더</title>
+	<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.17/index.global.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.17/locales/ko.global.min.js"></script>
+</head>
+<body>
+    <div id="calendar"></div>
+
+    <!-- Todo와 Google Event를 각각 다른 색으로 구분해서 표시 -->
+    <script th:inline="javascript">
+        const todoList = /*[[${todoList}]]*/ [];
+        const googleEvents = /*[[${googleEvents}]]*/ [];
+
+        // Todo -> FullCalendar 이벤트 형식으로 변환 (파란색 계열)
+        const todoEvents = todoList.map(todo => ({
+            title: todo.title,
+            start: todo.schedule_date,
+            allDay: true,
+            color: '#4285f4'
+        }));
+
+        // GoogleEventDto -> FullCalendar 이벤트 형식으로 변환 (초록색 계열)
+        const googleCalendarEvents = googleEvents.map(event => ({
+            title: '[Google] ' + event.title,
+            start: event.start,
+            end: event.end,
+            allDay: event.all_day,
+            color: '#34a853'
+        }));
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const calendarEl = document.getElementById('calendar');
+            const calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                locale: 'ko',
+                events: [...todoEvents, ...googleCalendarEvents]
+            });
+            calendar.render();
+        });
+    </script>
+</body>
+</html>

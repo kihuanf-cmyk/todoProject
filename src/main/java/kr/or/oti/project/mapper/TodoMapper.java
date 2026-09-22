@@ -23,4 +23,7 @@ public interface TodoMapper {
     int getTotalCount(PageRequestDTO pag);
     
     List<Map<String, Object>> selectStatusCountByUser(@Param("user_no") Long user_no);
+
+    // 기존 인터페이스에 메서드 추가
+    List<Todo> selectAllTodoByUser(@Param("user_no") Long user_no);
 }

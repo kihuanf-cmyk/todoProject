@@ -35,6 +35,14 @@
         ORDER BY schedule_date ASC
         OFFSET #{offset} ROWS FETCH NEXT #{amount} ROWS ONLY
     </select>
+	
+	<!-- TODO 전체 조회 -->
+	<select id="selectAllTodoByUser" resultType="kr.or.oti.project.domain.Todo">
+	    SELECT todo_id, user_no, title, content, schedule_date, status, file_url, file_name
+	    FROM TODO
+	    WHERE user_no = #{user_no}
+	    ORDER BY schedule_date ASC
+	</select>
 
     <!--
         전체 개수 조회 (페이지 번호 계산용)

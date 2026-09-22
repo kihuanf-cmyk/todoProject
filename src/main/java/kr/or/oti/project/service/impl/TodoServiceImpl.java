@@ -191,6 +191,16 @@ public class TodoServiceImpl implements TodoService {
 
         return stats;
     }
+    
+    // TodoServiceImpl에 추가 - 기존 getTodoList 패턴과 동일하게 도메인 -> DTO 변환
+    @Override
+    public List<TodoResponseDto> getAllTodoByUser(Long user_no) {
+        List<Todo> todos = todoMapper.selectAllTodoByUser(user_no);
+        return todos.stream()
+                .map(TodoResponseDto::from) // 기존 변환 방식이 다르면 알려주세요(예: 생성자/빌더)
+                .collect(Collectors.toList());
+    }
+    
     private void saveAndUpdateFile(Todo todo, MultipartFile file, Long user_no) {
         String savedName = null;
         try {

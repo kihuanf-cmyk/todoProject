@@ -55,7 +55,7 @@ class TodoTests {
         when(fileStorageUtil.storeFile(file)).thenReturn("uuid_plan.pdf");
         when(todoMapper.updateTodoFile(any(Todo.class))).thenReturn(1);
 
-        todoService.saveTodo(request, "user01", file);
+        todoService.saveTodo(request, 1L, file);
 
         verify(todoMapper).insertTodo(any(Todo.class));
         verify(todoMapper).updateTodoFile(any(Todo.class));
@@ -74,7 +74,7 @@ class TodoTests {
         when(file.getOriginalFilename()).thenReturn("new.pdf");
         when(fileStorageUtil.storeFile(file)).thenReturn("new.pdf");
 
-        todoService.updateTodo(updateRequest(false), "user01", file);
+        todoService.updateTodo(updateRequest(false), 1L, file);
 
         verify(todoMapper).updateTodoFile(any(Todo.class));
         verify(fileStorageUtil).deleteFile("old.pdf");
@@ -87,7 +87,7 @@ class TodoTests {
         when(todoMapper.updateTodo(any(Todo.class))).thenReturn(1);
         when(todoMapper.deleteTodoFile(1L)).thenReturn(1);
 
-        todoService.updateTodo(updateRequest(true), "user01", null);
+        todoService.updateTodo(updateRequest(true), 1L, null);
 
         verify(todoMapper).deleteTodoFile(1L);
         verify(fileStorageUtil).deleteFile("file.pdf");
@@ -99,7 +99,7 @@ class TodoTests {
         when(todoMapper.selectTodoById(1L)).thenReturn(ownedTodo("file.pdf"));
         when(todoMapper.updateTodo(any(Todo.class))).thenReturn(1);
 
-        todoService.updateTodo(updateRequest(false), "user01", null);
+        todoService.updateTodo(updateRequest(false), 1L, null);
 
         verify(todoMapper, never()).updateTodoFile(any(Todo.class));
         verify(todoMapper, never()).deleteTodoFile(any(Long.class));
@@ -109,10 +109,10 @@ class TodoTests {
     @DisplayName("다른 사용자의 Todo 상세 조회를 시도하면 AccessDeniedException을 던진다")
     void 다른사용자의Todo접근은거부한다() {
         Todo todo = new Todo();
-        todo.setUser_id("owner");
+        todo.setUser_no(1L);
         when(todoMapper.selectTodoById(1L)).thenReturn(todo);
 
-        assertThatThrownBy(() -> todoService.getTodo(1L, "visitor"))
+        assertThatThrownBy(() -> todoService.getTodo(1L, 2L))
                 .isInstanceOf(AccessDeniedException.class)
                 .hasMessageContaining("해당 일정에 접근할 권한이 없습니다.");
     }
@@ -122,7 +122,7 @@ class TodoTests {
     void 존재하지않는_일정조회시_IllegalArgumentException이_발생한다() {
         when(todoMapper.selectTodoById(999L)).thenReturn(null);
 
-        assertThatThrownBy(() -> todoService.getTodo(999L, "user01"))
+        assertThatThrownBy(() -> todoService.getTodo(999L, 1L))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("존재하지 않는 일정입니다.");
     }
@@ -134,7 +134,7 @@ class TodoTests {
         todo.setTitle("테스트 제목");
         when(todoMapper.selectTodoById(1L)).thenReturn(todo);
 
-        TodoResponseDto result = todoService.getTodo(1L, "user01");
+        TodoResponseDto result = todoService.getTodo(1L, 1L);
 
         assertThat(result.getTodo_id()).isEqualTo(1L);
         assertThat(result.getTitle()).isEqualTo("테스트 제목");
@@ -147,7 +147,7 @@ class TodoTests {
         when(todoMapper.selectTodoById(1L)).thenReturn(todo);
         when(todoMapper.deleteTodo(1L)).thenReturn(1);
 
-        todoService.deleteTodo(1L, "user01");
+        todoService.deleteTodo(1L, 1L);
 
         verify(todoMapper).deleteTodo(1L);
         verify(fileStorageUtil).deleteFile("sample.pdf");
@@ -159,7 +159,7 @@ class TodoTests {
         Todo todo = ownedTodo("sample.pdf");
         when(todoMapper.selectTodoById(1L)).thenReturn(todo);
 
-        assertThatThrownBy(() -> todoService.deleteTodo(1L, "otherUser"))
+        assertThatThrownBy(() -> todoService.deleteTodo(1L, 2L))
                 .isInstanceOf(AccessDeniedException.class)
                 .hasMessageContaining("해당 일정에 접근할 권한이 없습니다.");
     }
@@ -168,7 +168,7 @@ class TodoTests {
     @DisplayName("페이지 및 검색 조건으로 목록 조회 시 Mapper를 올바르게 호출한다")
     void 페이징조회시_Mapper를_호출하고_DTO목록을_반환한다() {
         PageRequestDTO pageReq = new PageRequestDTO();
-        pageReq.setUser_id("user01");
+        pageReq.setUser_no(1L);
         pageReq.setPage(1);
         pageReq.setAmount(10);
         pageReq.setKeyword("회의");
@@ -188,7 +188,7 @@ class TodoTests {
     @DisplayName("전체 일정 개수 조회 시 getTotalCount Mapper를 호출한다")
     void 전체개수조회시_getTotalCount_Mapper를_호출한다() {
         PageRequestDTO pageReq = new PageRequestDTO();
-        pageReq.setUser_id("user01");
+        pageReq.setUser_no(1L);
 
         when(todoMapper.getTotalCount(pageReq)).thenReturn(15);
 
@@ -201,7 +201,7 @@ class TodoTests {
     private Todo ownedTodo(String fileUrl) {
         Todo todo = new Todo();
         todo.setTodo_id(1L);
-        todo.setUser_id("user01");
+        todo.setUser_no(1L);
         todo.setFile_url(fileUrl);
         return todo;
     }

@@ -29,15 +29,17 @@ class UserTests {
 	class User도메인테스트 {
 
 		@Test
-		@DisplayName("User 객체는 아이디와 이름과 권한을 입력한 값으로 보관한다")
+		@DisplayName("User 객체는 번호, 아이디, 이름, 권한을 입력한 값으로 보관한다")
 		void User객체는입력한값을보관한다() {
 			User user = new User();
 
+			user.setUser_no(1L);
 			user.setUser_id("user01");
 			user.setPwd("plain-password");
 			user.setUser_name("홍길동");
 			user.setRole(UserRole.USER);
 
+			assertThat(user.getUser_no()).isEqualTo(1L);
 			assertThat(user.getUser_id()).isEqualTo("user01");
 			assertThat(user.getPwd()).isEqualTo("plain-password");
 			assertThat(user.getUser_name()).isEqualTo("홍길동");

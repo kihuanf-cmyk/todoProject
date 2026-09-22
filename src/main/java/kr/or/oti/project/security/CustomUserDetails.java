@@ -22,6 +22,10 @@ public class CustomUserDetails implements UserDetails {
         return user;
     }
 
+    public Long getUser_no() {
+        return user != null ? user.getUser_no() : null;
+    }
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         // enum "USER"/"ADMIN" → "ROLE_USER"/"ROLE_ADMIN"으로 변환

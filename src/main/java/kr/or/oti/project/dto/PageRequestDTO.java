@@ -7,7 +7,8 @@ import lombok.Setter;
 @Setter
 public class PageRequestDTO {
 
-    private String user_id;      // 로그인한 사용자 (누구의 일정인지)
+    private Long user_no;        // 로그인한 사용자의 고유 식별번호 (TODO_USER.USER_NO)
+    private String user_id;      // 사용자 아이디
     private String keyword;      // 검색어 (없으면 null 또는 빈 문자열)
     private int page = 1;        // 현재 페이지 (기본값 1페이지)
     private int amount = 10;     // 한 페이지에 보여줄 개수 (기본값 10개)

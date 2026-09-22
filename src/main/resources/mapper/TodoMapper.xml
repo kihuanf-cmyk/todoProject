@@ -6,14 +6,14 @@
         <selectKey keyProperty="todo_id" resultType="Long" order="BEFORE">
             SELECT todo_seq.NEXTVAL FROM DUAL
         </selectKey>
-        INSERT INTO todo (todo_id, user_id, title, content, schedule_date, status)
-        VALUES (#{todo_id}, #{user_id}, #{title}, #{content}, #{schedule_date}, #{status})
+        INSERT INTO todo (todo_id, user_no, title, content, schedule_date, status)
+        VALUES (#{todo_id}, #{user_no}, #{title}, #{content}, #{schedule_date}, #{status})
     </insert>
 
     <select id="selectTodoById" parameterType="Long" resultType="kr.or.oti.project.domain.Todo">
-        SELECT todo_id AS todo_id, user_id AS user_id, title, content,
-               schedule_date AS schedule_date, status AS status,
-               file_url AS file_url, file_name AS file_name
+        SELECT todo_id, user_no, title, content,
+               schedule_date, status,
+               file_url, file_name
         FROM todo
         WHERE todo_id = #{todo_id}
     </select>
@@ -24,11 +24,11 @@
         - OFFSET/FETCH로 페이지 단위로 잘라서 가져옴 (Oracle 12c 이상 문법)
     -->
     <select id="selectTodoList" parameterType="kr.or.oti.project.dto.PageRequestDTO" resultType="kr.or.oti.project.domain.Todo">
-        SELECT todo_id AS todo_id, user_id AS user_id, title, content,
-               schedule_date AS schedule_date, status AS status,
-               file_url AS file_url, file_name AS file_name
+        SELECT todo_id, user_no, title, content,
+               schedule_date, status,
+               file_url, file_name
         FROM todo
-        WHERE user_id = #{user_id}
+        WHERE user_no = #{user_no}
         <if test="keyword != null and keyword != ''">
             AND title LIKE '%' || #{keyword} || '%'
         </if>
@@ -43,7 +43,7 @@
     <select id="getTotalCount" parameterType="kr.or.oti.project.dto.PageRequestDTO" resultType="int">
         SELECT COUNT(*)
         FROM todo
-        WHERE user_id = #{user_id}
+        WHERE user_no = #{user_no}
         <if test="keyword != null and keyword != ''">
             AND title LIKE '%' || #{keyword} || '%'
         </if>

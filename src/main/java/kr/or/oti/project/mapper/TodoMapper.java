@@ -17,6 +17,6 @@ public interface TodoMapper {
     int deleteTodoFile(Long todo_id);
     int deleteTodo(Long todo_id);
 
-    // @Param 명시 : XML에서 #{user_id}, #{keyword} 로 정확히 매핑되도록 파라미터 이름을 고정
+    // @Param 명시 : XML에서 #{user_no}, #{keyword} 로 정확히 매핑되도록 파라미터 이름을 고정
     int getTotalCount(PageRequestDTO pag);
 }

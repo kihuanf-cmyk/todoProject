@@ -33,9 +33,9 @@ public class TodoServiceImpl implements TodoService {
      */
     @Override
     @Transactional
-    public void saveTodo(TodoSaveRequestDto dto, String user_id, MultipartFile file) {
+    public void saveTodo(TodoSaveRequestDto dto, Long user_no, MultipartFile file) {
         Todo todo = new Todo();
-        todo.setUser_id(user_id);
+        todo.setUser_no(user_no);
         todo.setTitle(dto.getTitle());
         todo.setContent(dto.getContent());
         todo.setSchedule_date(dto.getSchedule_date());
@@ -44,24 +44,24 @@ public class TodoServiceImpl implements TodoService {
         todoMapper.insertTodo(todo);
 
         if (hasFile(file)) {
-            saveAndUpdateFile(todo, file, user_id);
+            saveAndUpdateFile(todo, file, user_no);
         }
-        log.info("일정 등록 완료 - user_id={}, todo_id={}, hasFile={}",
-                user_id, todo.getTodo_id(), hasFile(file));
+        log.info("일정 등록 완료 - user_no={}, todo_id={}, hasFile={}",
+                user_no, todo.getTodo_id(), hasFile(file));
     }
 
     @Override
     public List<TodoResponseDto> getTodoList(PageRequestDTO pag) {
-        log.debug("일정 목록 조회 - user_id={}, keyword={}, page={}",
-                pag.getUser_id(), pag.getKeyword(), pag.getPage());
+        log.debug("일정 목록 조회 - user_no={}, keyword={}, page={}",
+                pag.getUser_no(), pag.getKeyword(), pag.getPage());
         return todoMapper.selectTodoList(pag).stream()
                 .map(TodoResponseDto::from)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public TodoResponseDto getTodo(Long todo_id, String user_id) {
-        return TodoResponseDto.from(getOwnedTodo(todo_id, user_id));
+    public TodoResponseDto getTodo(Long todo_id, Long user_no) {
+        return TodoResponseDto.from(getOwnedTodo(todo_id, user_no));
     }
 
     /**
@@ -70,51 +70,52 @@ public class TodoServiceImpl implements TodoService {
      */
     @Override
     @Transactional
-    public void updateTodo(TodoUpdateRequestDto dto, String user_id, MultipartFile file) {
-        Todo existing = getOwnedTodo(dto.getTodo_id(), user_id);
+    public void updateTodo(TodoUpdateRequestDto dto, Long user_no, MultipartFile file) {
+        Todo existing = getOwnedTodo(dto.getTodo_id(), user_no);
 
         Todo todo = new Todo();
         todo.setTodo_id(dto.getTodo_id());
+        todo.setUser_no(user_no);
         todo.setTitle(dto.getTitle());
         todo.setContent(dto.getContent());
         todo.setSchedule_date(dto.getSchedule_date());
         todo.setStatus(dto.getStatus());
 
         if (todoMapper.updateTodo(todo) == 0) {
-            log.warn("일정 수정 대상 없음 - user_id={}, todo_id={}", user_id, dto.getTodo_id());
+            log.warn("일정 수정 대상 없음 - user_no={}, todo_id={}", user_no, dto.getTodo_id());
             throw new IllegalArgumentException("수정할 일정을 찾을 수 없습니다.");
         }
 
         if (hasFile(file)) {
             // 안전한 순서: 새 파일 저장/DB 반영 성공 후 기존 물리 파일을 삭제한다.
-            saveAndUpdateFile(todo, file, user_id);
+            saveAndUpdateFile(todo, file, user_no);
             fileStorageUtil.deleteFile(existing.getFile_url());
-            log.info("첨부파일 교체 완료 - user_id={}, todo_id={}, originalName={}",
-                    user_id, dto.getTodo_id(), file.getOriginalFilename());
+            log.info("첨부파일 교체 완료 - user_no={}, todo_id={}, originalName={}",
+                    user_no, dto.getTodo_id(), file.getOriginalFilename());
         } else if (dto.isDeleteFile() && hasStoredFile(existing)) {
             if (todoMapper.deleteTodoFile(dto.getTodo_id()) == 0) {
-                log.error("첨부파일 정보 삭제 실패 - user_id={}, todo_id={}", user_id, dto.getTodo_id());
+                log.error("첨부파일 정보 삭제 실패 - user_no={}, todo_id={}", user_no, dto.getTodo_id());
                 throw new IllegalStateException("첨부파일 정보를 삭제할 수 없습니다.");
             }
             fileStorageUtil.deleteFile(existing.getFile_url());
-            log.info("첨부파일 삭제 완료 - user_id={}, todo_id={}", user_id, dto.getTodo_id());
+            log.info("첨부파일 삭제 완료 - user_no={}, todo_id={}", user_no, dto.getTodo_id());
         } else {
-            log.debug("첨부파일 변경 없음 - user_id={}, todo_id={}, deleteFile={}",
-                    user_id, dto.getTodo_id(), dto.isDeleteFile());
+            log.debug("첨부파일 변경 없음 - user_no={}, todo_id={}, deleteFile={}",
+                    user_no, dto.getTodo_id(), dto.isDeleteFile());
         }
 
-        log.info("일정 수정 완료 - user_id={}, todo_id={}", user_id, dto.getTodo_id());
+        log.info("일정 수정 완료 - user_no={}, todo_id={}", user_no, dto.getTodo_id());
     }
 
     @Override
-    public void deleteTodo(Long todo_id, String user_id) {
-        Todo existing = getOwnedTodo(todo_id, user_id);
+    public void deleteTodo(Long todo_id, Long user_no) {
+        Todo existing = getOwnedTodo(todo_id, user_no);
         if (todoMapper.deleteTodo(todo_id) == 0) {
-            log.warn("일정 삭제 대상 없음 - user_id={}, todo_id={}", user_id, todo_id);
+            log.warn("일정 삭제 대상 없음 - user_no={}, todo_id={}", user_no, todo_id);
             throw new IllegalArgumentException("삭제할 일정을 찾을 수 없습니다.");
         }
         fileStorageUtil.deleteFile(existing.getFile_url());
-        log.info("일정 삭제 완료 - user_id={}, todo_id={}", user_id, todo_id);
+        log.info("일정 삭제 완료 - user_no={}, todo_id={}", user_no, todo_id);
     }
 
     @Override
@@ -122,21 +123,21 @@ public class TodoServiceImpl implements TodoService {
         return todoMapper.getTotalCount(pag);
     }
 
-    private Todo getOwnedTodo(Long todo_id, String user_id) {
+    private Todo getOwnedTodo(Long todo_id, Long user_no) {
         Todo todo = todoMapper.selectTodoById(todo_id);
         if (todo == null) {
-            log.warn("존재하지 않는 일정 요청 - user_id={}, todo_id={}", user_id, todo_id);
+            log.warn("존재하지 않는 일정 요청 - user_no={}, todo_id={}", user_no, todo_id);
             throw new IllegalArgumentException("존재하지 않는 일정입니다.");
         }
-        if (!todo.getUser_id().equals(user_id)) {
+        if (!todo.getUser_no().equals(user_no)) {
             log.warn("일정 소유권 불일치 - todo_id={}, owner={}, requester={}",
-                    todo_id, todo.getUser_id(), user_id);
+                    todo_id, todo.getUser_no(), user_no);
             throw new AccessDeniedException("해당 일정에 접근할 권한이 없습니다.");
         }
         return todo;
     }
 
-    private void saveAndUpdateFile(Todo todo, MultipartFile file, String user_id) {
+    private void saveAndUpdateFile(Todo todo, MultipartFile file, Long user_no) {
         String savedName = null;
         try {
             savedName = fileStorageUtil.storeFile(file);
@@ -144,7 +145,7 @@ public class TodoServiceImpl implements TodoService {
             todo.setFile_name(file.getOriginalFilename());
 
             if (todoMapper.updateTodoFile(todo) == 0) {
-                log.error("첨부파일 정보 저장 실패 - user_id={}, todo_id={}", user_id, todo.getTodo_id());
+                log.error("첨부파일 정보 저장 실패 - user_no={}, todo_id={}", user_no, todo.getTodo_id());
                 throw new IllegalStateException("첨부파일 정보를 저장할 수 없습니다.");
             }
             log.debug("첨부파일 정보 저장 완료 - todo_id={}, originalName={}, savedName={}",
@@ -164,4 +165,3 @@ public class TodoServiceImpl implements TodoService {
         return todo.getFile_url() != null && !todo.getFile_url().isBlank();
     }
 }
-

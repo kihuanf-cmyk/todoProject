@@ -10,20 +10,18 @@ import kr.or.oti.project.dto.TodoSaveRequestDto;
 import kr.or.oti.project.dto.TodoUpdateRequestDto;
 
 public interface TodoService {
-    void saveTodo(TodoSaveRequestDto dto, String user_id, MultipartFile file);
+    void saveTodo(TodoSaveRequestDto dto, Long user_no, MultipartFile file);
     List<TodoResponseDto> getTodoList(PageRequestDTO pag);
 
-    // 상세 조회 시 본인의 일정인지 검증하기 위해 user_id 추가
-    TodoResponseDto getTodo(Long todo_id, String user_id);
+    // 상세 조회 시 본인의 일정인지 검증하기 위해 user_no 사용
+    TodoResponseDto getTodo(Long todo_id, Long user_no);
 
-    // 수정 시 본인의 일정인지 검증하기 위해 user_id 추가
-    void updateTodo(TodoUpdateRequestDto dto, String user_id, MultipartFile file);
+    // 수정 시 본인의 일정인지 검증하기 위해 user_no 사용
+    void updateTodo(TodoUpdateRequestDto dto, Long user_no, MultipartFile file);
 
-    // 삭제 시 본인의 일정인지 검증하기 위해 user_id 추가
-    void deleteTodo(Long todo_id, String user_id);
+    // 삭제 시 본인의 일정인지 검증하기 위해 user_no 사용
+    void deleteTodo(Long todo_id, Long user_no);
 
-    // 첨부파일 개별 삭제
-    
-    // 검색 기능
+    // 검색 및 페이징용 총 개수
     int getTotalCount(PageRequestDTO pag);
 }

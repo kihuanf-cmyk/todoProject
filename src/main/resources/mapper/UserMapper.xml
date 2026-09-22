@@ -3,14 +3,23 @@
 <mapper namespace="kr.or.oti.project.mapper.UserMapper">
 
     <insert id="insertUser" parameterType="kr.or.oti.project.domain.User">
-        INSERT INTO TODO_USER (user_id, pwd, user_name, role)
-        VALUES (#{user_id}, #{pwd}, #{user_name}, #{role})
+        <selectKey keyProperty="user_no" resultType="Long" order="BEFORE">
+            SELECT NVL(MAX(user_no), 0) + 1 FROM TODO_USER
+        </selectKey>
+        INSERT INTO TODO_USER (user_no, user_id, pwd, user_name, role)
+        VALUES (#{user_no}, #{user_id}, #{pwd}, #{user_name}, #{role})
     </insert>
 
     <select id="selectUserById" parameterType="String" resultType="kr.or.oti.project.domain.User">
-        SELECT user_id AS user_id, pwd, user_name AS user_name, role AS role
+        SELECT user_no, user_id, pwd, user_name, role
         FROM TODO_USER
         WHERE user_id = #{user_id}
+    </select>
+
+    <select id="selectUserByNo" parameterType="Long" resultType="kr.or.oti.project.domain.User">
+        SELECT user_no, user_id, pwd, user_name, role
+        FROM TODO_USER
+        WHERE user_no = #{user_no}
     </select>
 
     <select id="countUserById" parameterType="String" resultType="int">

@@ -1,185 +1,122 @@
-# todoProject 완료율 통계 기능
+# Google OAuth 로그인 기능 구현 정리
 
 ## 1. 개요
 
-- 전체 Todo 중 상태(STATUS)별 개수와 완료율(%)을 계산해 보여주는 기능
-- 완료율은 DB에 별도 컬럼으로 저장하지 않고, 조회 시점에 Service 레이어에서 계산
-- 상태별 개수 집계는 SQL의 `GROUP BY`로 처리(Service/JS에서 개수를 세지 않음)
+기존 Spring Security 폼 로그인(자체 회원가입/로그인)에 **Google OAuth2 로그인**을 추가했다.
+폼 로그인과 구글 로그인이 같은 `SecurityFilterChain`에서 공존하며, 로그인 성공 후에는
+컨트롤러에서 두 방식 모두 동일한 `CustomUserDetails` 타입으로 다룰 수 있도록 통일했다.
 
-## 2. 관련 테이블 (SCOTT.TODO)
+---
 
-```sql
-CREATE TABLE "SCOTT"."TODO" (
-    "TODO_ID"       NUMBER NOT NULL,
-    "TITLE"         NVARCHAR2(50) NOT NULL,
-    "CONTENT"       NVARCHAR2(500) NOT NULL,
-    "SCHEDULE_DATE" DATE NOT NULL,
-    "STATUS"        VARCHAR2(20) DEFAULT 'TODO' NOT NULL,
-    "FILE_URL"      NVARCHAR2(255),
-    "FILE_NAME"     NVARCHAR2(255),
-    "USER_NO"       NUMBER,
-    CONSTRAINT "PK_TODO" PRIMARY KEY ("TODO_ID"),
-    CONSTRAINT "FK_TODO_USER_TODO" FOREIGN KEY ("USER_NO")
-        REFERENCES "SCOTT"."TODO_USER" ("USER_NO")
-);
-```
+## 2. Google Cloud Console 설정
 
-- STATUS 값: `TODO`(시작전) / `DOING`(진행중) / `DONE`(완료)
-- USER_NO를 기준으로 사용자별 통계를 조회
+1. Google Cloud Console에서 프로젝트 생성
+2. **OAuth 동의 화면** 구성 (User Type: 외부/External, 테스트 사용자에 본인 계정 등록 필요)
+3. **사용자 인증 정보 > OAuth 클라이언트 ID** 발급
+   - 애플리케이션 유형: 웹 애플리케이션
+   - 승인된 리디렉션 URI: `http://localhost:8282/login/oauth2/code/google`
+   - 발급된 client-id / client-secret은 환경변수(`GOOGLE_ID`, `GOOGLE_PWD`)로 관리
+4. **Calendar API** 활성화 (추후 캘린더 연동을 위해 미리 켜둠)
 
-## 3. 전체 흐름
+> Windows 환경변수 등록 후에는 STS(이클립스)를 완전히 재시작해야 새 값이 반영된다.
+> (IDE를 환경변수 추가 전에 이미 켜둔 상태였다면 `${GOOGLE_ID}`가 치환되지 않아
+> `401 invalid_client` 오류가 발생했던 적이 있음)
 
-```
-TodoMapper (SQL GROUP BY로 상태별 개수 집계)
-       ↓
-TodoServiceImpl.getTodoStats() (rows를 순회하며 TodoStatsDTO에 값 채움 + 완료율 계산)
-       ↓
-TodoController (@GetMapping("/stats") - 로그인 사용자의 user_no로 조회 후 model에 담아 View로 전달)
-       ↓
-stats.html (Thymeleaf로 값 출력 + Highcharts로 시각화)
-```
+---
 
-## 4. Mapper
+## 3. 의존성 및 설정
 
-**TodoMapper.xml**
-
+### pom.xml
 ```xml
-<select id="selectStatusCountByUser" parameterType="long" resultType="map">
-    SELECT status, COUNT(*) AS CNT
-    FROM todo
-    WHERE user_no = #{user_no}
-    GROUP BY status
-</select>
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-oauth2-client</artifactId>
+</dependency>
 ```
 
-**TodoMapper 인터페이스**
+### application.properties
+```properties
+spring.security.oauth2.client.registration.google.client-id=${GOOGLE_ID}
+spring.security.oauth2.client.registration.google.client-secret=${GOOGLE_PWD}
+spring.security.oauth2.client.registration.google.scope=email,profile
+```
 
+---
+
+## 4. 클래스 구조
+
+### CustomOAuth2UserService (인터페이스)
+`OAuth2UserService<OAuth2UserRequest, OAuth2User>`를 상속하는 마커 인터페이스.
+기존 프로젝트의 Service/ServiceImpl 분리 패턴을 그대로 따름.
+
+### CustomOAuth2UserServiceImpl (구현체)
+- `DefaultOAuth2UserService`를 상속해 구글에서 사용자 정보를 가져오는 기본 로직 재사용
+- `loadUser()`에서 이메일 기준으로 `TODO_USER` 조회 → 없으면 자동 회원가입(`resolveUser()`로 분리)
+- 신규 가입 시 `pwd`는 `UUID.randomUUID()`를 `PasswordEncoder`로 암호화해 저장(실제 로그인에는 사용되지 않음)
+- `resolveUser()`는 테스트 패키지(`todoProject`)에서 직접 호출해 단위 테스트하기 위해 `public`으로 열어둠
+- 로그: 요청 수신(`debug`), 신규 등록(`info`), 기존 사용자 확인(`debug`)
+
+### CustomOAuth2UserDetails (신규)
+`CustomUserDetails`를 상속하면서 `OAuth2User`도 구현.
+- `@AuthenticationPrincipal CustomUserDetails`로 폼 로그인/구글 로그인 모두 동일하게 처리 가능하게 하기 위해 도입
+- `getAttributes()`는 구글이 내려준 원본 정보(email, name 등) 반환
+- `getName()`은 `getUsername()`(= user_id = 이메일)을 그대로 사용
+
+### CustomSecurityConfig
+- `filterChain()` 메서드 파라미터로 `CustomOAuth2UserService oAuth2UserService`를 추가로 주입받음
+- `formLogin()` 블록 뒤, `rememberMe()` 블록 앞에 `oauth2Login()` 추가
 ```java
-List<Map<String, Object>> selectStatusCountByUser(@Param("user_no") Long user_no);
+.oauth2Login(oauth2 -> oauth2
+    .loginPage("/user/login")
+    .defaultSuccessUrl("/todo/list", true)
+    .userInfoEndpoint(userInfo -> userInfo
+        .userService(oAuth2UserService)
+    )
+)
 ```
 
-- 결과는 `[{STATUS=TODO, CNT=3}, {STATUS=DOING, CNT=1}, {STATUS=DONE, CNT=6}]` 형태
-- 특정 상태의 Todo가 0개면 그 상태는 결과에 아예 안 나오므로, Service에서 0으로 초기화 후 덮어쓰는 방식으로 방어
-
-## 5. DTO
-
-```java
-package kr.or.oti.project.dto;
-
-import lombok.Data;
-
-@Data
-public class TodoStatsDTO {
-    private long total_count;
-    private long todo_count;
-    private long doing_count;
-    private long done_count;
-    private double completion_rate; // DB 미저장, Service에서 계산
-}
-```
-
-## 6. Service
-
-**TodoService 인터페이스**
-
-```java
-TodoStatsDTO getTodoStats(Long user_no);
-```
-
-**TodoServiceImpl**
-
-```java
-@Override
-public TodoStatsDTO getTodoStats(Long user_no) {
-
-    List<Map<String, Object>> rows = todoMapper.selectStatusCountByUser(user_no);
-
-    TodoStatsDTO stats = new TodoStatsDTO();
-    long todo_count = 0;
-    long doing_count = 0;
-    long done_count = 0;
-
-    for (Map<String, Object> row : rows) {
-        String status = (String) row.get("STATUS");
-        long cnt = ((Number) row.get("CNT")).longValue();
-
-        switch (status) {
-            case "TODO":  todo_count = cnt;  break;
-            case "DOING": doing_count = cnt; break;
-            case "DONE":  done_count = cnt;  break;
-        }
-    }
-
-    long total_count = todo_count + doing_count + done_count;
-
-    double completion_rate = (total_count == 0)
-            ? 0.0
-            : (done_count * 100.0 / total_count);
-
-    stats.setTotal_count(total_count);
-    stats.setTodo_count(todo_count);
-    stats.setDoing_count(doing_count);
-    stats.setDone_count(done_count);
-    stats.setCompletion_rate(completion_rate);
-
-    return stats;
-}
-```
-
-## 7. Controller
-
-```java
-@GetMapping("/stats")  // 클래스 @RequestMapping("/todo")와 합쳐져 최종 경로 /todo/stats
-public String getTodoStats(@AuthenticationPrincipal CustomUserDetails userDetails, Model model) {
-
-    Long user_no = userDetails.getUser_no();
-    TodoStatsDTO stats = todoService.getTodoStats(user_no);
-    model.addAttribute("stats", stats);
-
-    return "todo/stats";
-}
-```
-
-- 세션에서 직접 꺼내지 않고 Spring Security의 `@AuthenticationPrincipal`로 로그인 사용자 정보를 받음(다른 메서드들과 방식 통일)
-- 비로그인 상태로 `/todo/stats` 접근 시, Controller에 도달하기 전에 Spring Security가 로그인 화면으로 리다이렉트
-
-## 8. View (stats.html) + Highcharts
-
-- Highcharts는 CDN 스크립트 태그(`<script src="https://code.highcharts.com/highcharts.js">`) 방식 사용
-  - 현재 프로젝트가 Thymeleaf 기반 서버사이드 렌더링 구조라 npm `import Highcharts from "highcharts"` 방식은 부적합(별도 Node.js/번들러 환경 필요)
-- `chart.type` 값으로 차트 종류 결정 (`pie`: 비율 강조, `column`: 상태별 개수 비교 등)
-
+### 로그인 화면
 ```html
-<script src="https://code.highcharts.com/highcharts.js"></script>
-<div id="statsChart" style="width:400px;height:300px;"></div>
-
-<script th:inline="javascript">
-    var todoCount  = /*[[${stats.todo_count}]]*/ 0;
-    var doingCount = /*[[${stats.doing_count}]]*/ 0;
-    var doneCount  = /*[[${stats.done_count}]]*/ 0;
-
-    Highcharts.chart('statsChart', {
-        chart: { type: 'pie' },
-        title: { text: '할일 상태 비율' },
-        series: [{
-            name: '개수',
-            data: [
-                { name: '시작전', y: todoCount },
-                { name: '진행중', y: doingCount },
-                { name: '완료', y: doneCount }
-            ]
-        }]
-    });
-</script>
+<a href="/oauth2/authorization/google" class="btn btn-outline-danger w-100 mt-2">
+    Google로 로그인
+</a>
 ```
+`/oauth2/authorization/google`은 Spring Security가 `registration.google` 설정을 기반으로
+자동 생성하는 경로이며, Google Cloud Console에 등록한 URL이 아니다(별도 컨트롤러 불필요).
 
-## 9. 트러블슈팅 기록
+---
 
-- `@RequestMapping("/todo")` + `@GetMapping("/todo/stats")`를 같이 쓰면 최종 경로가 `/todo/todo/stats`가 되어 `/todo/stats` 요청이 `/todo/{todo_id}`로 잘못 매칭되는 문제 발생
-  → `@GetMapping("/stats")`로 수정하여 해결
-- `session.getAttribute("user_no")` 대신 다른 메서드들과 동일하게 `@AuthenticationPrincipal CustomUserDetails`로 user_no를 획득하도록 통일
+## 5. 겪은 오류와 해결
 
-## 10. 남은 작업 / 확장 아이디어
+### 5-1. `401 invalid_client`
+- 증상: 구글 로그인 화면에서 "The OAuth client was not found"
+- 원인: Windows 환경변수(`GOOGLE_ID`) 등록 후 STS를 재시작하지 않아 `${GOOGLE_ID}`가 치환되지 않음
+- 해결: STS 완전 재시작 후 정상 동작 확인
 
-- Highcharts 차트 타입(pie / column) 최종 결정 및 스타일링
-- 완료율 외 추가 통계(예: 기간별 등록 추이 등) 필요 시 검토
+### 5-2. `/todo/list` 이동 시 500 (NullPointerException)
+- 증상: 구글 로그인은 성공(TODO_USER에 자동 등록까지 확인)하지만 `/todo/list`에서
+  `userDetails.getUser_no()` 호출 시 NPE 발생
+- 원인: `CustomOAuth2UserServiceImpl.loadUser()`가 `DefaultOAuth2User` 타입을 반환하고 있어,
+  `@AuthenticationPrincipal CustomUserDetails userDetails`에 타입이 맞지 않아 `null`이 주입됨
+  (폼 로그인은 `CustomUserDetailsService`가 `CustomUserDetails`를 반환해 문제 없었음)
+- 해결: `CustomOAuth2UserDetails`(`CustomUserDetails` + `OAuth2User`)를 새로 만들어
+  `loadUser()`가 이를 반환하도록 수정
+
+---
+
+## 6. 테스트 코드
+
+`UserTests.java`(package `todoProject`)에 `GoogleOAuth사용자판별테스트` Nested 클래스 추가.
+`resolveUser()`만 별도로 분리해 테스트(= `super.loadUser()`의 실제 네트워크 호출 없이 검증 가능).
+
+- **신규이메일은자동등록된다**: `selectUserById`가 null을 반환하면 `insertUser` 호출,
+  `pwd`는 `passwordEncoder.encode()` 결과, `role`은 `UserRole.USER`로 설정되는지 검증
+- **기존이메일은재등록하지않는다**: 기존 사용자가 있으면 그대로 반환하고 `insertUser`가
+  호출되지 않는지 검증(`verify(userMapper, never()).insertUser(...)`)
+
+---
+
+## 7. 남은 작업 / 다음 단계
+
+- 로그인 방식 통합 고민(폼 로그인 vs 구글 로그인 구분을 위한 `LOGIN_TYPE` 컬럼 추가 여부) — 미결정
+- Google Calendar API 연동(scope 확장, 이벤트 조회, Calendar 화면 렌더링) — 진행 예정

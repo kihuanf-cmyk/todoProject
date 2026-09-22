@@ -9,6 +9,8 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+
+import kr.or.oti.project.security.CustomOAuth2UserService;
 import kr.or.oti.project.security.CustomUserDetailsService;
 
 @Configuration
@@ -24,7 +26,7 @@ public class CustomSecurityConfig {
 	// 2. 보안 필터 체인 설정 (Spring Security 5.7.x 기준 antMatchers 사용)
 	@Bean
     public SecurityFilterChain filterChain(HttpSecurity http,
-                                           CustomUserDetailsService userDetailsService) throws Exception {
+                                           CustomUserDetailsService userDetailsService, CustomOAuth2UserService oAuth2UserService) throws Exception {
         // @Bean 메서드의 파라미터는 스프링이 자동으로 주입해줍니다.
         // 필드 선언 + 생성자를 만들 필요가 없어 간단합니다.     
 		http
@@ -40,6 +42,16 @@ public class CustomSecurityConfig {
                 .defaultSuccessUrl("/todo/list", true) // 로그인 성공 시 이동
                 .permitAll()
             )
+            
+            // 구글 OAuth2 로그인 설정
+            .oauth2Login(oauth2 -> oauth2
+            		.loginPage("/user/login") //로그인 화면은 폼 로그인과 공유
+            		.defaultSuccessUrl("/todo/list", true) // 성공 시 이동 경로도 동일하게
+            		.userInfoEndpoint(userInfo -> userInfo
+            				.userService(oAuth2UserService) //2)에서 파라미터로 받은 빈 사용
+            				)
+            		)
+            
             // ✅ 자동 로그인(remember-me) 설정
             .rememberMe(remember -> remember
                 .key("dayplanner-remember-key")             // 쿠키 토큰 서명에 쓰이는 고유 키 (바뀌면 기존 쿠키 전부 무효)

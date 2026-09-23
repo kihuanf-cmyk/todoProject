@@ -1,55 +1,119 @@
-//package kr.or.oti.project.controller;
-//
-//import java.sql.Connection;
-//
-//import javax.sql.DataSource;
-//
-//import org.springframework.beans.factory.annotation.Autowired;
-//import org.springframework.web.bind.annotation.GetMapping;
-//import org.springframework.web.bind.annotation.RestController;
-//
-//import kr.or.oti.project.mapper.UserMapper;
-//
-//@RestController  // 화면(html) 없이 문자열을 그대로 브라우저에 출력
-//public class TestController {
-//
-//    @Autowired
-//    private DataSource dataSource;  // application.properties의 DB 접속 정보로 스프링이 자동 구성해줌
-//
-//    @Autowired
-//    private UserMapper userMapper;  // MyBatis가 실제로 이 인터페이스를 스캔했는지 확인용
-//    
-//    @GetMapping("/hello")
-//    public String hello() {
-//        return "Hello World";
-//    }
-//
-//    // 브라우저에서 자동화 테스트와 수동 확인 주소를 한 번에 확인하는 안내 화면
-//    @GetMapping("/test-guide")
-//    public String testGuide() {
-//        return "자동 테스트: TodoTests, UserTests / 브라우저 확인: /hello, /db-test, /mapper-test";
-//    }
-//
-//    @GetMapping("/db-test")
-//    public String dbTest() {
-//        try (Connection conn = dataSource.getConnection()) {
-//            boolean closed = conn.isClosed();  // 연결 직후라 반드시 false여야 함
-//            return "DB 연결 성공! isClosed() = " + closed;
-//        } catch (Exception e) {
-//            return "DB 연결 실패: " + e.getMessage();
-//        }
-//    }
-//
-//    @GetMapping("/mapper-test")
-//    public String mapperTest() {
-//        int count = userMapper.countUserById("test@test.com");  // 존재하지 않는 아이디로 조회
-//        return "매퍼 정상 동작! count = " + count;  // 테이블이 비어있으면 0이 나오는 게 정상
-//    }
-//
-//    // 관리자(ROLE_ADMIN) 전용 테스트 엔드포인트
-//    // 일반 회원(ROLE_USER)이 접속하면 403 차단되어 /user/denied 로 이동함
-//    @GetMapping("/admin/dashboard")
-//    public String adminDashboard() {
-//        return "관리자 전용 대시보드입니다. 환영합니다!";
-//    }
-//}
+package kr.or.oti.project.controller;
+
+import java.sql.Connection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.sql.DataSource;
+
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import kr.or.oti.project.dto.TodoResponseDto;
+import kr.or.oti.project.dto.TodoStatsDTO;
+import kr.or.oti.project.mapper.UserMapper;
+import kr.or.oti.project.security.CustomUserDetails;
+import kr.or.oti.project.service.TodoService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+@RestController
+@RequiredArgsConstructor
+public class TestController {
+
+    private final DataSource dataSource;
+    private final UserMapper userMapper;
+    private final TodoService todoService;
+
+    @GetMapping("/hello")
+    public String hello() {
+        log.debug("[TestController] /hello 요청 수신");
+        return "Hello World";
+    }
+
+    // 브라우저에서 자동화 테스트와 수동 확인 주소를 한 번에 확인하는 안내 화면
+    @GetMapping("/test-guide")
+    public Map<String, Object> testGuide() {
+        log.debug("[TestController] /test-guide 요청 수신");
+        Map<String, Object> guide = new HashMap<>();
+        guide.put("automatedTests", List.of("TodoTests", "UserTests", "CalendarTests", "KanbanTests", "HomeTests", "GlobalExceptionHandlerTest"));
+        guide.put("manualEndpoints", Map.of(
+                "hello", "/hello",
+                "dbCheck", "/db-test",
+                "mapperCheck", "/mapper-test",
+                "authInfo", "/test/auth-info",
+                "todoStats", "/test/stats",
+                "adminCheck", "/admin/dashboard"
+        ));
+        return guide;
+    }
+
+    @GetMapping("/db-test")
+    public String dbTest() {
+        log.debug("[TestController] /db-test DB 연결 테스트 수행");
+        try (Connection conn = dataSource.getConnection()) {
+            boolean closed = conn.isClosed();
+            log.info("[TestController] DB 연결 성공 - isClosed()={}", closed);
+            return "DB 연결 성공! isClosed() = " + closed;
+        } catch (Exception e) {
+            log.error("[TestController] DB 연결 실패", e);
+            return "DB 연결 실패: " + e.getMessage();
+        }
+    }
+
+    @GetMapping("/mapper-test")
+    public String mapperTest() {
+        log.debug("[TestController] /mapper-test 매퍼 동작 테스트");
+        int count = userMapper.countUserById("test@test.com");
+        log.info("[TestController] userMapper.countUserById('test@test.com') = {}", count);
+        return "매퍼 정상 동작! count = " + count;
+    }
+
+    // 로그인된 사용자의 인증 정보 확인용 테스트 엔드포인트
+    @GetMapping("/test/auth-info")
+    public Map<String, Object> authInfo(Authentication authentication,
+                                        @AuthenticationPrincipal CustomUserDetails userDetails) {
+        log.debug("[TestController] /test/auth-info 요청 수신");
+        Map<String, Object> result = new HashMap<>();
+        if (authentication == null) {
+            result.put("authenticated", false);
+            result.put("message", "로그인되지 않은 상태입니다.");
+            return result;
+        }
+
+        result.put("authenticated", authentication.isAuthenticated());
+        result.put("authType", authentication.getClass().getSimpleName());
+        result.put("username", authentication.getName());
+        result.put("authorities", authentication.getAuthorities().toString());
+
+        if (userDetails != null) {
+            result.put("user_no", userDetails.getUser_no());
+            result.put("userDetailsType", userDetails.getClass().getSimpleName());
+        }
+        return result;
+    }
+
+    // 로그인된 사용자의 Todo 통계 조회 테스트
+    @GetMapping("/test/stats")
+    public TodoStatsDTO testStats(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        if (userDetails == null) {
+            log.warn("[TestController] /test/stats - 인증 정보 없음");
+            return new TodoStatsDTO();
+        }
+        Long userNo = userDetails.getUser_no();
+        log.debug("[TestController] /test/stats - user_no={}", userNo);
+        return todoService.getTodoStats(userNo);
+    }
+
+    // 관리자(ROLE_ADMIN) 전용 테스트 엔드포인트
+    @GetMapping("/admin/dashboard")
+    public String adminDashboard() {
+        log.info("[TestController] /admin/dashboard 관리자 접근 성공");
+        return "관리자 전용 대시보드입니다. 환영합니다!";
+    }
+}

@@ -2,8 +2,6 @@ package kr.or.oti.project.controller;
 
 import java.util.List;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpSession;
 import javax.validation.Valid;
 
 import org.springframework.http.ResponseEntity;
@@ -76,10 +74,7 @@ public class TodoController {
     public String save(@Valid @ModelAttribute TodoSaveRequestDto dto,
                        @AuthenticationPrincipal CustomUserDetails userDetails,
                        @RequestParam(value = "file", required = false) MultipartFile file) {
-    	 log.info("===== SAVE =====");
-    	    log.info("userDetails = {}", userDetails);
-    	
-    	Long userNo = userDetails.getUser_no();
+        Long userNo = userDetails.getUser_no();
         log.debug("일정 등록 요청 - user_no={}, title={}, hasFile={}",
                 userNo, dto.getTitle(), hasFile(file));
 
@@ -138,19 +133,18 @@ public class TodoController {
                          RedirectAttributes redirectAttributes,
                          @RequestParam(value = "file", required = false) MultipartFile file) {
 
-    	 log.info("===== UPDATE =====");
-    	    log.info("userDetails = {}", userDetails);
-    	
         Long userNo = userDetails.getUser_no();
 
-        log.debug("일정 수정 요청 - user_no={}, todo_id={}, replaceFile={}, deleteFile={},prev_url={}",
-                userNo, dto.getTodo_id(), hasFile(file), dto.isDeleteFile());
+        log.debug("일정 수정 요청 - user_no={}, todo_id={}, replaceFile={}, deleteFile={}, prev_url={}",
+                userNo, dto.getTodo_id(), hasFile(file), dto.isDeleteFile(), dto.getPrev_url());
 
         todoService.updateTodo(dto, userNo, file);
 
+        log.info("일정 수정 완료 - user_no={}, todo_id={}", userNo, dto.getTodo_id());
+
         redirectAttributes.addAttribute("page", dto.getPage());
 
-        if (dto.getKeyword() != null && !dto.getPrev_url().isEmpty()) {
+        if (dto.getPrev_url() != null && !dto.getPrev_url().trim().isEmpty()) {
             return "redirect:" + dto.getPrev_url();
         }
 
@@ -159,7 +153,7 @@ public class TodoController {
     
     @PostMapping("/delete/{todo_id}")
     public String delete(@PathVariable Long todo_id,
-    		 			 @RequestParam(required = false, defaultValue = "/todo/list") String prev_url,
+                         @RequestParam(required = false, defaultValue = "/todo/list") String prev_url,
                          @AuthenticationPrincipal CustomUserDetails userDetails) {
         Long userNo = userDetails.getUser_no();
         log.debug("일정 삭제 요청 - todo_id={}, user_no={}, prev_url={}", todo_id, userNo, prev_url);
@@ -176,19 +170,15 @@ public class TodoController {
     
     @GetMapping("/stats")
     public String getTodoStats(@AuthenticationPrincipal CustomUserDetails userDetails, Model model) {
+        Long user_no = userDetails.getUser_no();
 
-        // 1. 로그인한 사용자의 user_no를 세션에서 꺼냄
-        Long user_no = (Long) userDetails.getUser_no();
-
-        // 2. Service 호출 - user_no를 조건으로 통계 DTO를 받아옴
         TodoStatsDTO stats = todoService.getTodoStats(user_no);
 
-        // 3. View로 넘길 모델에 담기
         model.addAttribute("stats", stats);
         log.debug("통계 조회 완료 - user_no={}, total={}, completionRate={}",
                 user_no, stats.getTotal_count(), stats.getCompletion_rate());
 
-        return "todo/stats"; // stats.html로 이동
+        return "todo/stats";
     }
     
     // Kanban 카드 Drag&Drop 시 status만 변경하는 AJAX 전용 엔드포인트
@@ -197,8 +187,12 @@ public class TodoController {
     public ResponseEntity<Void> updateStatus(@RequestParam Long todo_id,
                                               @RequestParam String status,
                                               @AuthenticationPrincipal CustomUserDetails userDetails) {
+        Long userNo = userDetails.getUser_no();
+        log.debug("AJAX 일정 상태 변경 요청 - todo_id={}, status={}, user_no={}", todo_id, status, userNo);
 
-        todoService.updateStatus(todo_id, status, userDetails.getUser_no());
+        todoService.updateStatus(todo_id, status, userNo);
+        log.info("AJAX 일정 상태 변경 완료 - todo_id={}, status={}, user_no={}", todo_id, status, userNo);
+
         return ResponseEntity.ok().build();
     }
 }

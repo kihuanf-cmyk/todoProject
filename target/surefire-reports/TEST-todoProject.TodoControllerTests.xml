@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report.xsd" name="todoProject.TodoTests" time="0.027" tests="15" errors="0" skipped="0" failures="0">
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report.xsd" name="todoProject.TodoControllerTests" time="0.017" tests="6" errors="0" skipped="0" failures="0">
   <properties>
     <property name="sun.desktop" value="windows"/>
     <property name="awt.toolkit" value="sun.awt.windows.WToolkit"/>
@@ -61,19 +61,10 @@
     <property name="sun.io.unicode.encoding" value="UnicodeLittle"/>
     <property name="java.class.version" value="55.0"/>
   </properties>
-  <testcase name="본인_일정_상태_변경_성공" classname="todoProject.TodoTests" time="0"/>
-  <testcase name="타인_일정_상태_변경시_AccessDeniedException_발생" classname="todoProject.TodoTests" time="0.003"/>
-  <testcase name="파일변경이없으면파일관련Mapper를호출하지않는다" classname="todoProject.TodoTests" time="0.001"/>
-  <testcase name="다른사용자의Todo접근은거부한다" classname="todoProject.TodoTests" time="0.001"/>
-  <testcase name="일정이없으면완료율을0으로반환한다" classname="todoProject.TodoTests" time="0.003"/>
-  <testcase name="새파일로수정하면기존파일을삭제하고파일정보를교체한다" classname="todoProject.TodoTests" time="0.009"/>
-  <testcase name="전체개수조회시_getTotalCount_Mapper를_호출한다" classname="todoProject.TodoTests" time="0.001"/>
-  <testcase name="페이징조회시_Mapper를_호출하고_DTO목록을_반환한다" classname="todoProject.TodoTests" time="0.001"/>
-  <testcase name="다른사용자_일정삭제시_AccessDeniedException이_발생한다" classname="todoProject.TodoTests" time="0.001"/>
-  <testcase name="본인일정_삭제시_DB와파일을_삭제한다" classname="todoProject.TodoTests" time="0.001"/>
-  <testcase name="상태별개수를집계해완료율을계산한다" classname="todoProject.TodoTests" time="0"/>
-  <testcase name="삭제표시후저장하면파일컬럼과물리파일을삭제한다" classname="todoProject.TodoTests" time="0.002"/>
-  <testcase name="본인일정_조회시_정상적으로_DTO를_반환한다" classname="todoProject.TodoTests" time="0"/>
-  <testcase name="존재하지않는_일정조회시_IllegalArgumentException이_발생한다" classname="todoProject.TodoTests" time="0"/>
-  <testcase name="등록은기본정보저장후첨부파일컬럼을갱신한다" classname="todoProject.TodoTests" time="0.001"/>
+  <testcase name="일정_삭제_후_prev_url_리다이렉트" classname="todoProject.TodoControllerTests" time="0.006"/>
+  <testcase name="수정화면_요청_성공" classname="todoProject.TodoControllerTests" time="0.001"/>
+  <testcase name="일정_수정_후_prev_url_리다이렉트" classname="todoProject.TodoControllerTests" time="0.002"/>
+  <testcase name="목록_조회_성공" classname="todoProject.TodoControllerTests" time="0.003"/>
+  <testcase name="AJAX_상태_변경_엔드포인트_성공" classname="todoProject.TodoControllerTests" time="0.003"/>
+  <testcase name="상세_조회_성공" classname="todoProject.TodoControllerTests" time="0"/>
 </testsuite>

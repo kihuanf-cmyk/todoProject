@@ -232,6 +232,26 @@ class TodoTests {
         assertThat(stats.getCompletion_rate()).isEqualTo(0.0);
     }
 
+    @Test
+    @DisplayName("칸반 보드에서 본인의 일정 상태를 정상적으로 변경한다")
+    void 본인_일정_상태_변경_성공() {
+        when(todoMapper.updateStatus(10L, "DONE", 1L)).thenReturn(1);
+
+        todoService.updateStatus(10L, "DONE", 1L);
+
+        verify(todoMapper).updateStatus(10L, "DONE", 1L);
+    }
+
+    @Test
+    @DisplayName("타인의 일정이거나 존재하지 않는 일정의 상태를 변경하려고 하면 AccessDeniedException이 발생한다")
+    void 타인_일정_상태_변경시_AccessDeniedException_발생() {
+        when(todoMapper.updateStatus(10L, "DONE", 999L)).thenReturn(0);
+
+        assertThatThrownBy(() -> todoService.updateStatus(10L, "DONE", 999L))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessageContaining("본인 일정만 상태를 변경할 수 있습니다.");
+    }
+
     private Todo ownedTodo(String fileUrl) {
         Todo todo = new Todo();
         todo.setTodo_id(1L);

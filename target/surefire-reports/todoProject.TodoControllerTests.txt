@@ -1,4 +1,4 @@
 -------------------------------------------------------------------------------
-Test set: todoProject.TodoTests
+Test set: todoProject.TodoControllerTests
 -------------------------------------------------------------------------------
-Tests run: 15, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.027 s - in todoProject.TodoTests
+Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.017 s - in todoProject.TodoControllerTests

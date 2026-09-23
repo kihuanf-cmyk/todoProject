@@ -117,15 +117,7 @@
 
 </div>
 
-<script>
-    $(function () {
-        $(".todo-card").on("click", function () {
-			const todoId = $(this).attr("data-id");
-			        location.href = "/todo/" + todoId + "?prev_url=/";
-			    });
-
-    });
-</script>
+<script th:src="@{/js/home.js}"></script>
 
 </body>
 </html>

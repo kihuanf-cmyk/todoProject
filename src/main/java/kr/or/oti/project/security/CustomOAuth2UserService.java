@@ -32,11 +32,24 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         OAuth2User oAuth2User = super.loadUser(userRequest);
 
         String email = oAuth2User.getAttribute("email");
-        String name = oAuth2User.getAttribute("name");
+        String name  = oAuth2User.getAttribute("name");
+
+        // email은 사용자 식별 키이므로 없으면 로그인 자체를 거부
+        if (email == null || email.isBlank()) {
+            log.error("구글 로그인 실패 - email 정보를 가져올 수 없음");
+            throw new OAuth2AuthenticationException(
+                    "구글 계정에서 이메일 정보를 가져올 수 없습니다. Google 계정 설정을 확인해 주세요.");
+        }
+
+        // name이 없는 경우 email을 이름으로 대체 (로그인 자체는 허용)
+        if (name == null || name.isBlank()) {
+            log.warn("구글 로그인 - name 정보 없음, email로 대체: email={}", email);
+            name = email;
+        }
 
         log.debug("구글 로그인 요청 수신 - email={}, name={}", email, name);
 
-        User loginUser = resolveUser(email, name); // 신규/기존 판별 로직은 별도 메서드로 분리
+        User loginUser = resolveUser(email, name);
 
         return new CustomOAuth2UserDetails(loginUser, oAuth2User.getAttributes());
     }

@@ -82,53 +82,31 @@
 
 </div>
 
-<!-- Todo와 Google Event를 각각 다른 색으로 구분해서 표시 (기존 로직 그대로) -->
+<!-- Thymeleaf 서버 데이터를 전역 변수로 노출 (calendar.js에서 참조) -->
 <script th:inline="javascript">
     const todoList = /*[[${todoList}]]*/ [];
     const googleEvents = /*[[${googleEvents}]]*/ [];
 
-	// DayPlanner 일정
-	const todoEvents = todoList.map(todo => ({
-	    id: 'todo-' + todo.todo_id,
-	    title: todo.title,
-	    start: todo.schedule_date,
-	    allDay: true,
-	    color: '#4285f4'
-	}));
+    // DayPlanner 일정
+    window._todoEvents = todoList.map(todo => ({
+        id: 'todo-' + todo.todo_id,
+        title: todo.title,
+        start: todo.schedule_date,
+        allDay: true,
+        color: '#4285f4'
+    }));
 
-	// Google 캘린더 일정
-	const googleCalendarEvents = googleEvents.map((event, index) => ({
-	    id: 'google-' + index,
-	    title: '[Google] ' + event.title,
-	    start: event.start,
-	    end: event.end,
-	    allDay: event.all_day,
-	    color: '#34a853'
-	}));
-
-    document.addEventListener('DOMContentLoaded', function () {
-        const calendarEl = document.getElementById('calendar');
-        const calendar = new FullCalendar.Calendar(calendarEl, {
-            initialView: 'dayGridMonth',
-            locale: 'ko',
-            events: [...todoEvents, ...googleCalendarEvents],
-			
-			// 일정 클릭
-			eventClick: function (info) {
-
-			    const eventId = info.event.id;
-
-			    if (eventId.startsWith('todo-')) {
-
-			        const todoId = eventId.replace('todo-', '');
-
-			        location.href = "/todo/" + todoId + "?prev_url=/calendar";
-			    }
-			}        
-		});
-        calendar.render();
-    });
+    // Google 캘린더 일정
+    window._googleCalendarEvents = googleEvents.map((event, index) => ({
+        id: 'google-' + index,
+        title: '[Google] ' + event.title,
+        start: event.start,
+        end: event.end,
+        allDay: event.all_day,
+        color: '#34a853'
+    }));
 </script>
+<script th:src="@{/js/calendar.js}"></script>
 
 </body>
 </html>

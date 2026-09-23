@@ -1,10 +1,13 @@
 package kr.or.oti.project.controller;
 
 import java.util.List;
+import java.util.Map;
 
 import javax.validation.Valid;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -184,15 +187,34 @@ public class TodoController {
     // Kanban 카드 Drag&Drop 시 status만 변경하는 AJAX 전용 엔드포인트
     @PostMapping("/updateStatus")
     @ResponseBody
-    public ResponseEntity<Void> updateStatus(@RequestParam Long todo_id,
-                                              @RequestParam String status,
-                                              @AuthenticationPrincipal CustomUserDetails userDetails) {
+    public ResponseEntity<?> updateStatus(@RequestParam Long todo_id,
+                                          @RequestParam String status,
+                                          @AuthenticationPrincipal CustomUserDetails userDetails) {
         Long userNo = userDetails.getUser_no();
+
+        // status 값 서버 검증 (TODO/DOING/DONE 이외 값 차단)
+        if (status == null || !status.matches("^(TODO|DOING|DONE)$")) {
+            log.warn("유효하지 않은 status 값 - todo_id={}, status={}, user_no={}", todo_id, status, userNo);
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", "유효하지 않은 상태값입니다."));
+        }
+
         log.debug("AJAX 일정 상태 변경 요청 - todo_id={}, status={}, user_no={}", todo_id, status, userNo);
 
-        todoService.updateStatus(todo_id, status, userNo);
-        log.info("AJAX 일정 상태 변경 완료 - todo_id={}, status={}, user_no={}", todo_id, status, userNo);
+        try {
+            todoService.updateStatus(todo_id, status, userNo);
+        } catch (AccessDeniedException e) {
+            // AJAX 요청이므로 GlobalExceptionHandler의 HTML 대신 JSON으로 직접 응답
+            log.warn("상태 변경 권한 없음 - todo_id={}, user_no={}", todo_id, userNo);
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("message", e.getMessage()));
+        } catch (Exception e) {
+            log.error("상태 변경 중 서버 오류 - todo_id={}, user_no={}", todo_id, userNo, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "상태 변경 중 오류가 발생했습니다."));
+        }
 
+        log.info("AJAX 일정 상태 변경 완료 - todo_id={}, status={}, user_no={}", todo_id, status, userNo);
         return ResponseEntity.ok().build();
     }
 }

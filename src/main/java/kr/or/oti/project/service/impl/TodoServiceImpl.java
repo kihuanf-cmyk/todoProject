@@ -195,10 +195,15 @@ public class TodoServiceImpl implements TodoService {
     // TodoServiceImpl에 추가 - 기존 getTodoList 패턴과 동일하게 도메인 -> DTO 변환
     @Override
     public List<TodoResponseDto> getAllTodoByUser(Long user_no) {
+        log.debug("전체 일정 조회 요청 - user_no={}", user_no);
+
         List<Todo> todos = todoMapper.selectAllTodoByUser(user_no);
-        return todos.stream()
-                .map(TodoResponseDto::from) // 기존 변환 방식이 다르면 알려주세요(예: 생성자/빌더)
+        List<TodoResponseDto> result = todos.stream()
+                .map(TodoResponseDto::from)
                 .collect(Collectors.toList());
+
+        log.debug("전체 일정 조회 완료 - user_no={}, count={}", user_no, result.size());
+        return result;
     }
     
     private void saveAndUpdateFile(Todo todo, MultipartFile file, Long user_no) {

@@ -84,11 +84,6 @@ spring.security.oauth2.client.registration.google.scope=email,profile
 
 ## 5. 겪은 오류와 해결
 
-### 5-1. `401 invalid_client`
-- 증상: 구글 로그인 화면에서 "The OAuth client was not found"
-- 원인: Windows 환경변수(`GOOGLE_ID`) 등록 후 STS를 재시작하지 않아 `${GOOGLE_ID}`가 치환되지 않음
-- 해결: STS 완전 재시작 후 정상 동작 확인
-
 ### 5-2. `/todo/list` 이동 시 500 (NullPointerException)
 - 증상: 구글 로그인은 성공(TODO_USER에 자동 등록까지 확인)하지만 `/todo/list`에서
   `userDetails.getUser_no()` 호출 시 NPE 발생

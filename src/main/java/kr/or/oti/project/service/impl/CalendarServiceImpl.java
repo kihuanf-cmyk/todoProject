@@ -47,7 +47,8 @@ public class CalendarServiceImpl implements CalendarService {
         }
 
         OAuth2AuthenticationToken oauthToken = (OAuth2AuthenticationToken) authentication;
-
+        log.debug("구글 캘린더 조회 요청 수신 - user={}", oauthToken.getName());
+        
         OAuth2AuthorizedClient client = authorizedClientService.loadAuthorizedClient(
                 oauthToken.getAuthorizedClientRegistrationId(), // "google"
                 oauthToken.getName());                          // 로그인 사용자 식별자(이메일)
@@ -100,7 +101,7 @@ public class CalendarServiceImpl implements CalendarService {
                 .build();
     }
     
-    private GoogleEventDto toDto(Event event) {
+    public GoogleEventDto toDto(Event event) {
         EventDateTime start = event.getStart();
         EventDateTime end = event.getEnd();
 

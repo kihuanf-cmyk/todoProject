@@ -1,46 +1,112 @@
 <!-- templates/calendar/calendar.html -->
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>캘린더</title>
-	<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.17/index.global.min.js"></script>
-	<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.17/locales/ko.global.min.js"></script>
+    <title>DayPlanner</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+    <!-- 공통 레이아웃 CSS -->
+    <link th:href="@{/css/common.css}" rel="stylesheet">
+
+    <!-- FullCalendar (기존 그대로) -->
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.17/index.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.17/locales/ko.global.min.js"></script>
+
+    <!-- calendar 페이지 전용 스타일 -->
+    <style>
+        .calendar-card {
+            border: 1px solid #e5e5e5;
+            border-radius: 8px;
+            padding: 20px;
+            background-color: white;
+        }
+
+        .calendar-legend {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 16px;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .legend-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+    </style>
 </head>
+
 <body>
-    <div id="calendar"></div>
 
-    <!-- Todo와 Google Event를 각각 다른 색으로 구분해서 표시 -->
-    <script th:inline="javascript">
-        const todoList = /*[[${todoList}]]*/ [];
-        const googleEvents = /*[[${googleEvents}]]*/ [];
+<div class="app-container">
 
-        // Todo -> FullCalendar 이벤트 형식으로 변환 (파란색 계열)
-        const todoEvents = todoList.map(todo => ({
-            title: todo.title,
-            start: todo.schedule_date,
-            allDay: true,
-            color: '#4285f4'
-        }));
+    <!-- 사이드바 프래그먼트 (현재 메뉴: calendar) -->
+    <div th:replace="~{fragments/layout :: sidebar('calendar')}"></div>
 
-        // GoogleEventDto -> FullCalendar 이벤트 형식으로 변환 (초록색 계열)
-        const googleCalendarEvents = googleEvents.map(event => ({
-            title: '[Google] ' + event.title,
-            start: event.start,
-            end: event.end,
-            allDay: event.all_day,
-            color: '#34a853'
-        }));
+    <main class="main">
 
-        document.addEventListener('DOMContentLoaded', function () {
-            const calendarEl = document.getElementById('calendar');
-            const calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'dayGridMonth',
-                locale: 'ko',
-                events: [...todoEvents, ...googleCalendarEvents]
-            });
-            calendar.render();
+        <!-- 헤더 프래그먼트 (제목: 캘린더) -->
+        <div th:replace="~{fragments/layout :: header('캘린더')}"></div>
+
+        <section class="content">
+
+            <h1 class="page-title">캘린더</h1>
+
+            <div class="calendar-legend">
+                <span><span class="legend-dot" style="background-color:#4285f4;"></span>내 일정</span>
+                <span><span class="legend-dot" style="background-color:#34a853;"></span>Google 캘린더</span>
+                <span class="text-muted">(읽기 전용)</span>
+            </div>
+
+            <div class="calendar-card">
+                <div id="calendar"></div>
+            </div>
+
+        </section>
+
+    </main>
+
+</div>
+
+<!-- Todo와 Google Event를 각각 다른 색으로 구분해서 표시 (기존 로직 그대로) -->
+<script th:inline="javascript">
+    const todoList = /*[[${todoList}]]*/ [];
+    const googleEvents = /*[[${googleEvents}]]*/ [];
+
+    const todoEvents = todoList.map(todo => ({
+        title: todo.title,
+        start: todo.schedule_date,
+        allDay: true,
+        color: '#4285f4'
+    }));
+
+    const googleCalendarEvents = googleEvents.map(event => ({
+        title: '[Google] ' + event.title,
+        start: event.start,
+        end: event.end,
+        allDay: event.all_day,
+        color: '#34a853'
+    }));
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const calendarEl = document.getElementById('calendar');
+        const calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            locale: 'ko',
+            events: [...todoEvents, ...googleCalendarEvents]
         });
-    </script>
+        calendar.render();
+    });
+</script>
+
 </body>
 </html>

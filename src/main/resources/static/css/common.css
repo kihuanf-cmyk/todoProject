@@ -1,0 +1,82 @@
+body {
+    margin: 0;
+    background-color: #ffffff;
+    color: #333;
+    font-family: Arial, sans-serif;
+}
+
+.app-container {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* Sidebar */
+.sidebar {
+    width: 230px;
+    background-color: #f7f7f5;
+    border-right: 1px solid #e5e5e5;
+    padding: 20px 12px;
+}
+
+.logo {
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 30px;
+    padding: 0 12px;
+}
+
+.sidebar-menu a {
+    display: block;
+    padding: 10px 12px;
+    margin-bottom: 4px;
+    color: #444;
+    text-decoration: none;
+    border-radius: 6px;
+}
+
+.sidebar-menu a:hover {
+    background-color: #e9e9e7;
+}
+
+.sidebar-menu .active {
+    background-color: #e9e9e7;
+    font-weight: 600;
+}
+
+/* Main */
+.main {
+    flex: 1;
+}
+
+/* Header */
+.header {
+    height: 60px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #e5e5e5;
+    padding: 0 30px;
+}
+
+.header-title {
+    font-weight: 600;
+}
+
+/* Content */
+.content {
+    padding: 35px 45px;
+    max-width: 1200px;
+}
+
+.section-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 15px;
+}
+
+/* 모든 페이지 상단 제목 공통 스타일 */
+.page-title {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 30px;
+}

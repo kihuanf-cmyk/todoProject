@@ -1,4 +1,3 @@
-// kr.or.oti.project.controller 패키지에 신규 생성
 package kr.or.oti.project.controller;
 
 import java.util.List;

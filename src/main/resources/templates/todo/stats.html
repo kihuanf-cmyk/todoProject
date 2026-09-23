@@ -1,23 +1,56 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>할일 통계</title>
-    <!-- Bootstrap 5 CSS CDN -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="bg-light">
+    <title>DayPlanner</title>
 
-<div class="container my-5">
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            
-            <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white">
-                    <h3 class="mb-0">할일 통계</h3>
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+    <!-- 공통 레이아웃 CSS -->
+    <link th:href="@{/css/common.css}" rel="stylesheet">
+
+    <!-- 이 페이지 전용 스타일 -->
+    <style>
+        .stats-card {
+            border: 1px solid #e5e5e5;
+            border-radius: 8px;
+            background-color: white;
+        }
+
+        .stats-card .card-header {
+            background-color: #f7f7f5;
+            color: #333;
+            border-bottom: 1px solid #e5e5e5;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+
+    <!-- 사이드바 프래그먼트 (현재 메뉴: statistics) -->
+    <div th:replace="~{fragments/layout :: sidebar('statistics')}"></div>
+
+    <main class="main">
+
+        <!-- 헤더 프래그먼트 (제목: 통계) -->
+        <div th:replace="~{fragments/layout :: header('통계')}"></div>
+
+        <section class="content">
+
+            <h1 class="page-title">할일 통계</h1>
+
+            <div class="stats-card">
+                <div class="card-header">
+                    <h3 class="mb-0 h6">전체 현황</h3>
                 </div>
                 <div class="card-body">
-                    
+
                     <!-- 통계 테이블 -->
                     <div class="table-responsive mb-4">
                         <table class="table table-bordered table-hover text-center align-middle">
@@ -42,7 +75,7 @@
                         </table>
                     </div>
 
-                    <!-- Highcharts가 그려질 영역 (data-* 속성으로 Thymeleaf 데이터 주입) -->
+                    <!-- Highcharts가 그려질 영역 (기존 data-* 속성 그대로 유지) -->
                     <div id="statsChart" class="w-100" style="height: 400px;"
                          th:data-todo="${stats.todo_count}"
                          th:data-doing="${stats.doing_count}"
@@ -52,17 +85,18 @@
                 </div>
             </div>
 
-        </div>
-    </div>
+        </section>
+
+    </main>
+
 </div>
 
-<!-- jQuery CDN -->
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <!-- Bootstrap 5 JS CDN -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <!-- Highcharts CDN -->
 <script src="https://code.highcharts.com/highcharts.js"></script>
-<!-- 분리된 JS 파일 -->
+<!-- 분리된 JS 파일 (기존 그대로) -->
 <script th:src="@{/js/stats.js}"></script>
+
 </body>
 </html>

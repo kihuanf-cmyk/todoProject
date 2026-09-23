@@ -31,6 +31,7 @@ public class TodoUpdateRequestDto {
     @Pattern(regexp = "^(TODO|DOING|DONE)$", message = "상태값은 TODO, DOING, DONE 중 하나여야 합니다.")
     private String status;
 
+    private String prev_url;
     private boolean deleteFile = false;
     private int page = 1;
     private String keyword;

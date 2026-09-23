@@ -2,6 +2,7 @@ package kr.or.oti.project.controller;
 
 import java.util.List;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import javax.validation.Valid;
 
@@ -75,7 +76,10 @@ public class TodoController {
     public String save(@Valid @ModelAttribute TodoSaveRequestDto dto,
                        @AuthenticationPrincipal CustomUserDetails userDetails,
                        @RequestParam(value = "file", required = false) MultipartFile file) {
-        Long userNo = userDetails.getUser_no();
+    	 log.info("===== SAVE =====");
+    	    log.info("userDetails = {}", userDetails);
+    	
+    	Long userNo = userDetails.getUser_no();
         log.debug("일정 등록 요청 - user_no={}, title={}, hasFile={}",
                 userNo, dto.getTitle(), hasFile(file));
 
@@ -88,68 +92,84 @@ public class TodoController {
 
     @GetMapping("/{todo_id}")
     public String detail(@PathVariable Long todo_id,
-                          @RequestParam(defaultValue = "1") int page,
-                          @RequestParam(required = false) String keyword,
-                          @AuthenticationPrincipal CustomUserDetails userDetails,
-                          Model model) {
+                         @RequestParam(defaultValue = "1") int page,
+                         @RequestParam(required = false) String keyword,
+                         @RequestParam(required = false, defaultValue = "/todo/list") String prev_url,
+                         @AuthenticationPrincipal CustomUserDetails userDetails,
+                         Model model) {
+
         Long userNo = userDetails.getUser_no();
-        log.debug("상세 조회 요청 - todo_id={}, user_no={}, page={}, keyword={}",
-                todo_id, userNo, page, keyword);
+
+        log.debug("상세 조회 요청 - todo_id={}, user_no={}, page={}, keyword={}, prev_url={}", 
+                todo_id, userNo, page, keyword, prev_url);
 
         model.addAttribute("todo", todoService.getTodo(todo_id, userNo));
         model.addAttribute("page", page);
         model.addAttribute("keyword", keyword);
+        model.addAttribute("prev_url", prev_url);
+
         return "todo/read";
     }
-
+    
     @GetMapping("/modify/{todo_id}")
     public String modifyForm(@PathVariable Long todo_id,
-                              @RequestParam(defaultValue = "1") int page,
-                              @RequestParam(required = false) String keyword,
-                              @AuthenticationPrincipal CustomUserDetails userDetails,
-                              Model model) {
+                             @RequestParam(defaultValue = "1") int page,
+                             @RequestParam(required = false) String keyword,
+                             @RequestParam(required = false, defaultValue = "/todo/list") String prev_url,
+                             @AuthenticationPrincipal CustomUserDetails userDetails,
+                             Model model) {
+
         Long userNo = userDetails.getUser_no();
-        log.debug("수정 화면 요청 - todo_id={}, user_no={}, page={}, keyword={}",
-                todo_id, userNo, page, keyword);
+
+        log.debug("수정 화면 요청 - todo_id={}, user_no={}, page={}, keyword={}, prev_url={}",
+                todo_id, userNo, page, keyword, prev_url);
 
         model.addAttribute("todo", todoService.getTodo(todo_id, userNo));
         model.addAttribute("page", page);
         model.addAttribute("keyword", keyword);
+        model.addAttribute("prev_url", prev_url);
+
         return "todo/modify";
     }
-
+    
     @PostMapping("/update")
     public String update(@Valid @ModelAttribute TodoUpdateRequestDto dto,
-                          @AuthenticationPrincipal CustomUserDetails userDetails,
-                          RedirectAttributes redirectAttributes,
-                          @RequestParam(value = "file", required = false) MultipartFile file) {
+                         @AuthenticationPrincipal CustomUserDetails userDetails,
+                         RedirectAttributes redirectAttributes,
+                         @RequestParam(value = "file", required = false) MultipartFile file) {
+
+    	 log.info("===== UPDATE =====");
+    	    log.info("userDetails = {}", userDetails);
+    	
         Long userNo = userDetails.getUser_no();
-        log.debug("일정 수정 요청 - user_no={}, todo_id={}, replaceFile={}, deleteFile={}",
+
+        log.debug("일정 수정 요청 - user_no={}, todo_id={}, replaceFile={}, deleteFile={},prev_url={}",
                 userNo, dto.getTodo_id(), hasFile(file), dto.isDeleteFile());
 
         todoService.updateTodo(dto, userNo, file);
 
-        log.info("일정 수정 완료 - user_no={}, todo_id={}, replaceFile={}, deleteFile={}",
-                userNo, dto.getTodo_id(), hasFile(file), dto.isDeleteFile());
-
         redirectAttributes.addAttribute("page", dto.getPage());
-        if (dto.getKeyword() != null && !dto.getKeyword().isEmpty()) {
-            redirectAttributes.addAttribute("keyword", dto.getKeyword());
+
+        if (dto.getKeyword() != null && !dto.getPrev_url().isEmpty()) {
+            return "redirect:" + dto.getPrev_url();
         }
+
         return "redirect:/todo/list";
     }
-
+    
     @PostMapping("/delete/{todo_id}")
-    public String delete(@PathVariable Long todo_id, @AuthenticationPrincipal CustomUserDetails userDetails) {
+    public String delete(@PathVariable Long todo_id,
+    		 			 @RequestParam(required = false, defaultValue = "/todo/list") String prev_url,
+                         @AuthenticationPrincipal CustomUserDetails userDetails) {
         Long userNo = userDetails.getUser_no();
-        log.debug("일정 삭제 요청 - todo_id={}, user_no={}", todo_id, userNo);
+        log.debug("일정 삭제 요청 - todo_id={}, user_no={}, prev_url={}", todo_id, userNo, prev_url);
 
         todoService.deleteTodo(todo_id, userNo);
-
         log.info("일정 삭제 완료 - user_no={}, todo_id={}", userNo, todo_id);
-        return "redirect:/todo/list";
-    }
 
+        return "redirect:" + prev_url;
+    }
+    
     private boolean hasFile(MultipartFile file) {
         return file != null && !file.isEmpty();
     }

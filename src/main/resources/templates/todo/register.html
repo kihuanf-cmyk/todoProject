@@ -26,6 +26,7 @@
                 <h1 class="page-title">일정 등록</h1>
 
                 <form th:action="@{/todo/save}" method="post" enctype="multipart/form-data">
+					<input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                     <div class="mb-3">
                         <label class="form-label">날짜</label>
                         <input type="date" name="schedule_date" class="form-control" required>

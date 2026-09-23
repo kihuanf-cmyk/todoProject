@@ -26,9 +26,11 @@
                 <h1 class="page-title">일정 수정</h1>
 
                 <form th:action="@{/todo/update}" method="post" enctype="multipart/form-data">
+					<input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                     <input type="hidden" name="todo_id" th:value="${todo.todo_id}">
                     <input type="hidden" name="page" th:value="${page}">
                     <input type="hidden" name="keyword" th:value="${keyword}">
+					<input type="hidden" name="prev_url" th:value="${prev_url}">
                     <input type="hidden" name="deleteFile" id="deleteFile" value="false">
 
                     <div class="mb-3">
@@ -72,10 +74,10 @@
                     </div>
 
                     <button type="button" id="deleteTodoButton" class="btn btn-outline-danger btn-sm">일정 삭제</button>
-                    <a th:href="@{/todo/{id}(id=${todo.todo_id},page=${page},keyword=${keyword})}" class="btn btn-outline-secondary btn-sm">돌아가기</a>
+					<a th:href="@{/todo/{id}(id=${todo.todo_id}, page=${page}, keyword=${keyword}, prev_url=${prev_url})}" class="btn btn-outline-secondary btn-sm"> 돌아가기 </a>
                     <button type="submit" class="btn btn-dark btn-sm">저장</button>
                 </form>
-                <form id="deleteForm" th:action="@{/todo/delete/{id}(id=${todo.todo_id})}" method="post" class="d-none"></form>
+				<form id="deleteForm" th:action="@{/todo/delete/{id}(id=${todo.todo_id}, prev_url=${prev_url})}" method="post" class="d-none"> </form>
 
             </div>
         </section>

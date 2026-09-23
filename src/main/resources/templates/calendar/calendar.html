@@ -42,6 +42,12 @@
             border-radius: 50%;
             margin-right: 6px;
         }
+		
+		.fc-event:hover {
+		        background-color: #3371e3 !important; /* 원래 색상(#4285f4)보다 살짝 어두운 파란색이나 회색 계열 */
+		        filter: brightness(0.9); /* 또는 밝기를 살짝 낮추는 방법도 있습니다 */
+		        cursor: pointer;
+		    }
     </style>
 </head>
 
@@ -64,7 +70,6 @@
             <div class="calendar-legend">
                 <span><span class="legend-dot" style="background-color:#4285f4;"></span>내 일정</span>
                 <span><span class="legend-dot" style="background-color:#34a853;"></span>Google 캘린더</span>
-                <span class="text-muted">(읽기 전용)</span>
             </div>
 
             <div class="calendar-card">
@@ -82,28 +87,45 @@
     const todoList = /*[[${todoList}]]*/ [];
     const googleEvents = /*[[${googleEvents}]]*/ [];
 
-    const todoEvents = todoList.map(todo => ({
-        title: todo.title,
-        start: todo.schedule_date,
-        allDay: true,
-        color: '#4285f4'
-    }));
+	// DayPlanner 일정
+	const todoEvents = todoList.map(todo => ({
+	    id: 'todo-' + todo.todo_id,
+	    title: todo.title,
+	    start: todo.schedule_date,
+	    allDay: true,
+	    color: '#4285f4'
+	}));
 
-    const googleCalendarEvents = googleEvents.map(event => ({
-        title: '[Google] ' + event.title,
-        start: event.start,
-        end: event.end,
-        allDay: event.all_day,
-        color: '#34a853'
-    }));
+	// Google 캘린더 일정
+	const googleCalendarEvents = googleEvents.map((event, index) => ({
+	    id: 'google-' + index,
+	    title: '[Google] ' + event.title,
+	    start: event.start,
+	    end: event.end,
+	    allDay: event.all_day,
+	    color: '#34a853'
+	}));
 
     document.addEventListener('DOMContentLoaded', function () {
         const calendarEl = document.getElementById('calendar');
         const calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: 'dayGridMonth',
             locale: 'ko',
-            events: [...todoEvents, ...googleCalendarEvents]
-        });
+            events: [...todoEvents, ...googleCalendarEvents],
+			
+			// 일정 클릭
+			eventClick: function (info) {
+
+			    const eventId = info.event.id;
+
+			    if (eventId.startsWith('todo-')) {
+
+			        const todoId = eventId.replace('todo-', '');
+
+			        location.href = "/todo/" + todoId + "?prev_url=/calendar";
+			    }
+			}        
+		});
         calendar.render();
     });
 </script>

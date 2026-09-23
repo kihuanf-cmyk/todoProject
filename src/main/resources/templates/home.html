@@ -120,9 +120,10 @@
 <script>
     $(function () {
         $(".todo-card").on("click", function () {
-            const todoId = $(this).data("id");
-            location.href = "/todo/view/" + todoId;
-        });
+			const todoId = $(this).attr("data-id");
+			        location.href = "/todo/" + todoId + "?prev_url=/";
+			    });
+
     });
 </script>
 

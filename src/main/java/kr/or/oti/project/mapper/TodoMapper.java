@@ -26,4 +26,9 @@ public interface TodoMapper {
 
     // 기존 인터페이스에 메서드 추가
     List<Todo> selectAllTodoByUser(@Param("user_no") Long user_no);
+    
+    // Kanban Drag&Drop 상태 변경용 - status만 업데이트, 본인 소유 검증을 위해 user_no도 WHERE 조건에 포함
+    int updateStatus(@Param("todo_id") Long todo_id,
+                      @Param("status") String status,
+                      @Param("user_no") Long user_no);
 }

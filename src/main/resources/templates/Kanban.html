@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>DayPlanner</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <link th:href="@{/css/common.css}" rel="stylesheet">
+	
+	<!-- CSRF 토큰 메타태그 삽입 (AJAX 요청 시 헤더에 실어 보내기 위함) -->
+	   <th:block th:replace="~{fragments/layout :: csrfMeta}"></th:block>
+
+    <style>
+        .kanban-board {
+            display: flex;
+            gap: 16px;
+        }
+
+        .kanban-column {
+            flex: 1;
+            background-color: #f7f7f5;
+            border-radius: 8px;
+            padding: 12px;
+            min-height: 400px;
+        }
+
+        .kanban-column-title {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 12px;
+            padding: 0 4px;
+            color: #555;
+        }
+
+        .kanban-card {
+            border: 1px solid #e5e5e5;
+            border-radius: 8px;
+            background-color: white;
+            padding: 12px;
+            margin-bottom: 8px;
+            cursor: grab;
+        }
+
+        .kanban-card:hover {
+            background-color: #fafafa;
+        }
+
+        .kanban-card.dragging {
+            opacity: 0.4;
+        }
+
+        .kanban-card .todo-date {
+            font-size: 12px;
+            color: #888;
+        }
+
+        .kanban-column.drag-over {
+            background-color: #eef2ff;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+
+    <div th:replace="~{fragments/layout :: sidebar('kanban')}"></div>
+
+    <main class="main">
+
+        <div th:replace="~{fragments/layout :: header('칸반 보드')}"></div>
+
+        <section class="content">
+
+            <h1 class="page-title">칸반 보드</h1>
+
+            <div class="kanban-board">
+
+                <!-- 시작 전 -->
+                <div class="kanban-column" data-status="TODO">
+                    <div class="kanban-column-title">⬜ 시작 전</div>
+                    <div class="kanban-card"
+                         th:each="todo : ${todoList}"
+                         draggable="true"
+                         th:data-id="${todo.todo_id}"
+						 th:data-status="${todo.status}">
+                        <div th:text="${todo.title}">제목</div>
+                        <div class="todo-date" th:text="${#dates.format(todo.schedule_date, 'yyyy-MM-dd')}">2026-09-23</div>
+                    </div>
+                </div>
+
+                <!-- 진행 중 -->
+                <div class="kanban-column" data-status="DOING">
+                    <div class="kanban-column-title">🔄 진행 중</div>
+                    <div class="kanban-card"
+                         th:each="todo : ${doingList}"
+                         draggable="true"
+                         th:data-id="${todo.todo_id}"
+						 th:data-status="${todo.status}">
+                        <div th:text="${todo.title}">제목</div>
+                        <div class="todo-date" th:text="${#dates.format(todo.schedule_date, 'yyyy-MM-dd')}">2026-09-23</div>
+                    </div>
+                </div>
+
+                <!-- 완료 -->
+                <div class="kanban-column" data-status="DONE">
+                    <div class="kanban-column-title">✅ 완료</div>
+                    <div class="kanban-card"
+                         th:each="todo : ${doneList}"
+                         draggable="true"
+                         th:data-id="${todo.todo_id}"
+						 th:data-status="${todo.status}">
+                        <div th:text="${todo.title}">제목</div>
+                        <div class="todo-date" th:text="${#dates.format(todo.schedule_date, 'yyyy-MM-dd')}">2026-09-23</div>
+                    </div>
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+	// 모든 AJAX 요청에 CSRF 토큰을 헤더로 자동 첨부 (CSRF가 꺼져있지 않으므로 필수)
+	 $.ajaxSetup({
+	     beforeSend: function (xhr) {
+	         const token = $("meta[name='_csrf']").attr("content");
+	         const header = $("meta[name='_csrf_header']").attr("content");
+	         if (token && header) {
+	             xhr.setRequestHeader(header, token);
+	         }
+	     }
+	 });
+	 
+	 $(function () {
+
+	     let draggedCard = null;
+
+	     // CSRF 토큰 자동 설정
+	     $.ajaxSetup({
+	         beforeSend: function (xhr) {
+	             const token = $("meta[name='_csrf']").attr("content");
+	             const header = $("meta[name='_csrf_header']").attr("content");
+
+	             if (token && header) { xhr.setRequestHeader(header, token);
+	             }
+	         }
+	     });
+
+	     // 드래그 시작
+	     $(".kanban-card").on("dragstart", function (e) {
+	         draggedCard = this;
+
+	         $(this).addClass("dragging");
+	         console.log("드래그 시작");
+	         console.log("todo_id:", $(this).data("id"));
+	     });
+
+	     // 드래그 종료
+	     $(".kanban-card").on("dragend", function () {
+	         $(this).removeClass("dragging");
+	         $(".kanban-column").removeClass("drag-over");
+	     });
+
+	     // 컬럼 위로 드래그
+	     $(".kanban-column").on("dragover", function (e) {
+	         e.preventDefault();
+	         $(this).addClass("drag-over");
+	     });
+
+	     // 컬럼에서 드래그가 빠짐
+	     $(".kanban-column").on("dragleave", function () {
+	         $(this).removeClass("drag-over");
+	     });
+
+	     // Drop
+	     $(".kanban-column").on("drop", function (e) {
+	         e.preventDefault();
+	         $(this).removeClass("drag-over");
+
+	         if (!draggedCard) {
+	             console.log("draggedCard가 없습니다.");
+	             return;
+	         }
+
+	         const $card = $(draggedCard);
+	         const todoId = $card.attr("data-id");
+	         const newStatus = $(this).attr("data-status");
+	         const $targetColumn = $(this);
+
+	         console.log("Drop 발생");
+	         console.log("todo_id:", todoId);
+	         console.log("newStatus:", newStatus);
+
+	         // 같은 컬럼이면 이동하지 않음
+	         if ($card.parent()[0] === $targetColumn[0]) {
+	             draggedCard = null;
+	             return;
+	         }
+
+	         // 서버에 상태 변경 요청
+	         $.ajax({
+	             url: "/todo/updateStatus",
+	             type: "POST",
+	             data: {
+	                 todo_id: todoId,
+	                 status: newStatus
+	             },
+
+	             success: function () {
+	                 console.log("DB 상태 변경 성공");
+
+	                 // 화면에서 카드 이동
+	                 $targetColumn.append($card);
+	                 console.log("화면에서 카드 이동 완료");
+
+	                 // 카드의 현재 상태도 변경
+	                 $card.attr("data-status", newStatus);
+	             },
+
+	             error: function (xhr) {
+	                 console.error("상태 변경 실패");
+	                 console.error("status:", xhr.status);
+	                 console.error("response:", xhr.responseText);
+	                 alert("상태 변경에 실패했습니다. 다시 시도해주세요.");
+	             },
+	             complete: function () {
+	                 draggedCard = null;
+	             }
+	         });
+	     });
+
+	     // 카드 클릭
+	     $(".kanban-card").on("click", function () {
+
+	         // 드래그 후 클릭 방지
+	         if ($(this).hasClass("dragging")) {
+	             return;
+	         }
+
+	         const todoId = $(this).attr("data-id");
+	         location.href = "/todo/" + todoId;
+	     });
+
+	 });
+	 
+</script>
+
+</body>
+</html>

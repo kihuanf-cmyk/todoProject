@@ -206,6 +206,21 @@ public class TodoServiceImpl implements TodoService {
         return result;
     }
     
+    @Override
+    public void updateStatus(Long todo_id, String status, Long user_no) {
+
+        log.debug("Kanban 상태 변경 요청 수신 - todo_id={}, status={}", todo_id, status);
+
+        int updatedRows = todoMapper.updateStatus(todo_id, status, user_no);
+
+        // 업데이트된 row가 0건이면 본인 소유가 아니거나 존재하지 않는 todo_id (IDOR 방지 패턴과 동일)
+        if (updatedRows == 0) {
+            throw new AccessDeniedException("본인 일정만 상태를 변경할 수 있습니다.");
+        }
+
+        log.debug("Kanban 상태 변경 완료 - todo_id={}", todo_id);
+    }
+    
     private void saveAndUpdateFile(Todo todo, MultipartFile file, Long user_no) {
         String savedName = null;
         try {

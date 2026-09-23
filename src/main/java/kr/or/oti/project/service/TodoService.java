@@ -31,4 +31,7 @@ public interface TodoService {
     
     // TodoService 인터페이스에 추가
     List<TodoResponseDto> getAllTodoByUser(Long user_no);
+    
+    // Kanban 카드 Drag&Drop 시 전체 수정 없이 status만 빠르게 변경하기 위한 메서드
+    void updateStatus(Long todo_id, String status, Long user_no);
 }

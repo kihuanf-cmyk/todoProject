@@ -5,6 +5,7 @@ import java.util.List;
 import javax.servlet.http.HttpSession;
 import javax.validation.Valid;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
@@ -167,5 +169,16 @@ public class TodoController {
                 user_no, stats.getTotal_count(), stats.getCompletion_rate());
 
         return "todo/stats"; // stats.html로 이동
+    }
+    
+    // Kanban 카드 Drag&Drop 시 status만 변경하는 AJAX 전용 엔드포인트
+    @PostMapping("/updateStatus")
+    @ResponseBody
+    public ResponseEntity<Void> updateStatus(@RequestParam Long todo_id,
+                                              @RequestParam String status,
+                                              @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        todoService.updateStatus(todo_id, status, userDetails.getUser_no());
+        return ResponseEntity.ok().build();
     }
 }

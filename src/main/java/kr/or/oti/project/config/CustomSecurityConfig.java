@@ -32,6 +32,7 @@ public class CustomSecurityConfig {
 		http
             .authorizeRequests(auth -> auth
                 .antMatchers("/admin/**").hasRole("ADMIN")            // 관리자 전용
+                .antMatchers("/", "/calendar", "/kanban", "/statistics").hasAnyRole("USER", "ADMIN") // 로그인 회원 전용
                 .antMatchers("/todo/**").hasAnyRole("USER", "ADMIN")  // 로그인 회원 전용
                 .anyRequest().permitAll()                             // 나머지(회원가입/로그인 등)는 누구나 접근
             )

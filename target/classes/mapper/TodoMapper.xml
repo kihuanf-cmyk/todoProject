@@ -91,5 +91,12 @@
     	WHERE user_no = #{user_no}
     	GROUP BY status
     </select>
+    
+    <update id="updateStatus">
+    	UPDATE TODO
+    	SET status = #{status}
+    	WHERE todo_id = #{todo_id}
+      	AND user_no = #{user_no}
+	</update>
 
 </mapper>

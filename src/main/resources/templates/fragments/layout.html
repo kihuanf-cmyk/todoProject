@@ -1,7 +1,13 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
-
+	
+	<!-- CSRF 토큰을 <head>에 메타태그로 심어두는 프래그먼트. AJAX(JS)에서 토큰을 꺼내 쓰기 위함 -->
+	<th:block th:fragment="csrfMeta">
+	    <meta name="_csrf" th:content="${_csrf.token}"/>
+	    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+	</th:block>
+	
 <!-- 사이드바 프래그먼트: activeMenu 파라미터로 각 페이지에서 현재 메뉴 표시 -->
 <aside class="sidebar" th:fragment="sidebar(activeMenu)">
 
@@ -15,13 +21,13 @@
            th:classappend="${activeMenu == 'calendar'} ? 'active'">📅 캘린더</a>
 
         <a th:href="@{/todo/list}"
-           th:classappend="${activeMenu == 'todo'} ? 'active'">☑ 일정</a>
+           th:classappend="${activeMenu == 'todo/list'} ? 'active'">☑ 일정</a>
 
         <a th:href="@{/kanban}"
            th:classappend="${activeMenu == 'kanban'} ? 'active'">▦ 칸반 보드</a>
 
-        <a th:href="@{/statistics}"
-           th:classappend="${activeMenu == 'statistics'} ? 'active'">📊 통계</a>
+        <a th:href="@{/todo/stats}"
+           th:classappend="${activeMenu == 'todo/stats'} ? 'active'">📊 통계</a>
     </nav>
 
 </aside>

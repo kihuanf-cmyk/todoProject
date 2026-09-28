@@ -67,7 +67,7 @@ class TodoTests {
     @DisplayName("새 파일로 수정하면 기존 파일을 삭제하고 파일 정보를 교체한다")
     void 새파일로수정하면기존파일을삭제하고파일정보를교체한다() {
         Todo existing = ownedTodo("old.pdf");
-        when(todoMapper.selectTodoById(1L)).thenReturn(existing);
+        when(todoMapper.selectTodoById(1L, 1L)).thenReturn(existing);
         when(todoMapper.updateTodo(any(Todo.class))).thenReturn(1);
         when(todoMapper.updateTodoFile(any(Todo.class))).thenReturn(1);
 
@@ -85,48 +85,46 @@ class TodoTests {
     @Test
     @DisplayName("삭제 표시 후 저장하면 파일 컬럼과 물리 파일을 삭제한다")
     void 삭제표시후저장하면파일컬럼과물리파일을삭제한다() {
-        when(todoMapper.selectTodoById(1L)).thenReturn(ownedTodo("file.pdf"));
+        when(todoMapper.selectTodoById(1L, 1L)).thenReturn(ownedTodo("file.pdf"));
         when(todoMapper.updateTodo(any(Todo.class))).thenReturn(1);
-        when(todoMapper.deleteTodoFile(1L)).thenReturn(1);
+        when(todoMapper.deleteTodoFile(1L, 1L)).thenReturn(1);
 
         todoService.updateTodo(updateRequest(true), 1L, null);
 
-        verify(todoMapper).deleteTodoFile(1L);
+        verify(todoMapper).deleteTodoFile(1L, 1L);
         verify(fileStorageUtil).deleteFile("file.pdf");
     }
 
     @Test
     @DisplayName("파일 변경이 없으면 파일 관련 Mapper를 호출하지 않는다")
     void 파일변경이없으면파일관련Mapper를호출하지않는다() {
-        when(todoMapper.selectTodoById(1L)).thenReturn(ownedTodo("file.pdf"));
+        when(todoMapper.selectTodoById(1L, 1L)).thenReturn(ownedTodo("file.pdf"));
         when(todoMapper.updateTodo(any(Todo.class))).thenReturn(1);
 
         todoService.updateTodo(updateRequest(false), 1L, null);
 
         verify(todoMapper, never()).updateTodoFile(any(Todo.class));
-        verify(todoMapper, never()).deleteTodoFile(any(Long.class));
+        verify(todoMapper, never()).deleteTodoFile(any(Long.class), any(Long.class));
     }
 
     @Test
-    @DisplayName("다른 사용자의 Todo 상세 조회를 시도하면 AccessDeniedException을 던진다")
+    @DisplayName("다른 사용자의 Todo 상세 조회를 시도하면 IllegalArgumentException을 던진다")
     void 다른사용자의Todo접근은거부한다() {
-        Todo todo = new Todo();
-        todo.setUser_no(1L);
-        when(todoMapper.selectTodoById(1L)).thenReturn(todo);
+        when(todoMapper.selectTodoById(1L, 2L)).thenReturn(null);
 
         assertThatThrownBy(() -> todoService.getTodo(1L, 2L))
-                .isInstanceOf(AccessDeniedException.class)
-                .hasMessageContaining("해당 일정에 접근할 권한이 없습니다.");
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("존재하지 않는 일정이거나 접근 권한이 없습니다.");
     }
 
     @Test
     @DisplayName("존재하지 않는 일정 번호 조회 시 IllegalArgumentException을 던진다")
     void 존재하지않는_일정조회시_IllegalArgumentException이_발생한다() {
-        when(todoMapper.selectTodoById(999L)).thenReturn(null);
+        when(todoMapper.selectTodoById(999L, 1L)).thenReturn(null);
 
         assertThatThrownBy(() -> todoService.getTodo(999L, 1L))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("존재하지 않는 일정입니다.");
+                .hasMessageContaining("존재하지 않는 일정이거나 접근 권한이 없습니다.");
     }
 
     @Test
@@ -134,7 +132,7 @@ class TodoTests {
     void 본인일정_조회시_정상적으로_DTO를_반환한다() {
         Todo todo = ownedTodo("file.pdf");
         todo.setTitle("테스트 제목");
-        when(todoMapper.selectTodoById(1L)).thenReturn(todo);
+        when(todoMapper.selectTodoById(1L, 1L)).thenReturn(todo);
 
         TodoResponseDto result = todoService.getTodo(1L, 1L);
 
@@ -146,24 +144,23 @@ class TodoTests {
     @DisplayName("본인의 일정을 삭제할 경우 DB 삭제 및 첨부파일을 원자적으로 삭제한다")
     void 본인일정_삭제시_DB와파일을_삭제한다() {
         Todo todo = ownedTodo("sample.pdf");
-        when(todoMapper.selectTodoById(1L)).thenReturn(todo);
-        when(todoMapper.deleteTodo(1L)).thenReturn(1);
+        when(todoMapper.selectTodoById(1L, 1L)).thenReturn(todo);
+        when(todoMapper.deleteTodo(1L, 1L)).thenReturn(1);
 
         todoService.deleteTodo(1L, 1L);
 
-        verify(todoMapper).deleteTodo(1L);
+        verify(todoMapper).deleteTodo(1L, 1L);
         verify(fileStorageUtil).deleteFile("sample.pdf");
     }
 
     @Test
-    @DisplayName("다른 사용자의 일정을 삭제 시도할 경우 AccessDeniedException을 던진다")
+    @DisplayName("다른 사용자의 일정을 삭제 시도할 경우 IllegalArgumentException을 던진다")
     void 다른사용자_일정삭제시_AccessDeniedException이_발생한다() {
-        Todo todo = ownedTodo("sample.pdf");
-        when(todoMapper.selectTodoById(1L)).thenReturn(todo);
+        when(todoMapper.selectTodoById(1L, 2L)).thenReturn(null);
 
         assertThatThrownBy(() -> todoService.deleteTodo(1L, 2L))
-                .isInstanceOf(AccessDeniedException.class)
-                .hasMessageContaining("해당 일정에 접근할 권한이 없습니다.");
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("존재하지 않는 일정이거나 접근 권한이 없습니다.");
     }
 
     @Test

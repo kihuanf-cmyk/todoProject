@@ -95,7 +95,7 @@ public class TodoServiceImpl implements TodoService {
             log.info("첨부파일 교체 완료 - user_no={}, todo_id={}, originalName={}",
                     user_no, dto.getTodo_id(), file.getOriginalFilename());
         } else if (dto.isDeleteFile() && hasStoredFile(existing)) {
-            if (todoMapper.deleteTodoFile(dto.getTodo_id()) == 0) {
+            if (todoMapper.deleteTodoFile(dto.getTodo_id(), user_no) == 0) {
                 log.error("첨부파일 정보 삭제 실패 - user_no={}, todo_id={}", user_no, dto.getTodo_id());
                 throw new IllegalStateException("첨부파일 정보를 삭제할 수 없습니다.");
             }
@@ -112,7 +112,7 @@ public class TodoServiceImpl implements TodoService {
     @Override
     public void deleteTodo(Long todo_id, Long user_no) {
         Todo existing = getOwnedTodo(todo_id, user_no);
-        if (todoMapper.deleteTodo(todo_id) == 0) {
+        if (todoMapper.deleteTodo(todo_id, user_no) == 0) {
             log.warn("일정 삭제 대상 없음 - user_no={}, todo_id={}", user_no, todo_id);
             throw new IllegalArgumentException("삭제할 일정을 찾을 수 없습니다.");
         }
@@ -126,15 +126,10 @@ public class TodoServiceImpl implements TodoService {
     }
 
     private Todo getOwnedTodo(Long todo_id, Long user_no) {
-        Todo todo = todoMapper.selectTodoById(todo_id);
+        Todo todo = todoMapper.selectTodoById(todo_id, user_no);
         if (todo == null) {
-            log.warn("존재하지 않는 일정 요청 - user_no={}, todo_id={}", user_no, todo_id);
-            throw new IllegalArgumentException("존재하지 않는 일정입니다.");
-        }
-        if (!todo.getUser_no().equals(user_no)) {
-            log.warn("일정 소유권 불일치 - todo_id={}, owner={}, requester={}",
-                    todo_id, todo.getUser_no(), user_no);
-            throw new AccessDeniedException("해당 일정에 접근할 권한이 없습니다.");
+            log.warn("존재하지 않거나 권한이 없는 일정 요청 - user_no={}, todo_id={}", user_no, todo_id);
+            throw new IllegalArgumentException("존재하지 않는 일정이거나 접근 권한이 없습니다.");
         }
         return todo;
     }

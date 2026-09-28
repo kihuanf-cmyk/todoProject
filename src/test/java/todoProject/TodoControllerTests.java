@@ -131,7 +131,7 @@ class TodoControllerTests {
     void AJAX_상태_변경_엔드포인트_성공() {
         CustomUserDetails userDetails = createMockUserDetails(1L, "user01");
 
-        ResponseEntity<Void> response = todoController.updateStatus(10L, "DONE", userDetails);
+        ResponseEntity<?> response = todoController.updateStatus(10L, "DONE", userDetails);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         verify(todoService).updateStatus(10L, "DONE", 1L);

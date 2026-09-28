@@ -13,11 +13,11 @@ import kr.or.oti.project.dto.PageRequestDTO;
 public interface TodoMapper {
     int insertTodo(Todo todo);
     List<Todo> selectTodoList(PageRequestDTO pag);
-    Todo selectTodoById(Long todo_id);
+    Todo selectTodoById(@Param("todo_id") Long todo_id, @Param("user_no") Long user_no);
     int updateTodo(Todo todo);
     int updateTodoFile(Todo todo);
-    int deleteTodoFile(Long todo_id);
-    int deleteTodo(Long todo_id);
+    int deleteTodoFile(@Param("todo_id") Long todo_id, @Param("user_no") Long user_no);
+    int deleteTodo(@Param("todo_id") Long todo_id, @Param("user_no") Long user_no);
 
     // @Param 명시 : XML에서 #{user_no}, #{keyword} 로 정확히 매핑되도록 파라미터 이름을 고정
     int getTotalCount(PageRequestDTO pag);

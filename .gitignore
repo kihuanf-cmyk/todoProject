@@ -1,2 +1,7 @@
 *.md
 *.puml
+target/
+
+.settings/
+.classpath
+.project

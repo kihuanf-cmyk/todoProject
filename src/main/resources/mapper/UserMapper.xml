@@ -4,7 +4,7 @@
 
     <insert id="insertUser" parameterType="kr.or.oti.project.domain.User">
         <selectKey keyProperty="user_no" resultType="Long" order="BEFORE">
-            SELECT NVL(MAX(user_no), 0) + 1 FROM TODO_USER
+            SELECT TODO_USER_SEQ.NEXTVAL FROM DUAL
         </selectKey>
         INSERT INTO TODO_USER (user_no, user_id, pwd, user_name, role)
         VALUES (#{user_no}, #{user_id}, #{pwd}, #{user_name}, #{role})
